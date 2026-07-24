@@ -1,13 +1,8 @@
-// Builds the prompt from the embedded skill + config, spawns the chosen agent,
-// and returns its raw markdown output. No fallback: if the agent fails, we
-// surface the error and exit. That is a deliberate scope decision.
 import { spawn } from "node:child_process";
-import type { Agent } from "./agents.js";
+import type { Agent } from "./agents/types.js";
 import type { Config } from "./config.js";
 import { SKILL, CLI_ADDENDUM } from "./skill.generated.js";
 
-// Assembles skill body + the CLI-only addendum + a Configuration block
-// reflecting the user's settings + the query, in the shape the harness proved.
 export function buildPrompt(query: string, config: Config): string {
   const configBlock = [
     "## Configuration",
@@ -18,12 +13,17 @@ export function buildPrompt(query: string, config: Config): string {
   return `${SKILL}\n\n${CLI_ADDENDUM}\n\n${configBlock}\n\n---\n\numm ${query}`;
 }
 
-// Spawns the agent and resolves with its stdout. The prompt is delivered either
-// on stdin or as the final argv element, per the adapter's `input` mode.
-// Rejects with a descriptive error on non-zero exit or spawn failure.
-export function runAgent(agent: Agent, prompt: string): Promise<string> {
+// Spawns the agent, delivers the prompt per its `input` mode, resolves stdout.
+// No fallback by design: on failure, reject with a descriptive error.
+export function runAgent(
+  agent: Agent,
+  prompt: string,
+  model?: string,
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    const args = agent.input === "arg" ? [...agent.args, prompt] : agent.args;
+    const modelArgs = model && agent.modelFlag ? [agent.modelFlag, model] : [];
+    const baseArgs = [...agent.args, ...modelArgs];
+    const args = agent.input === "arg" ? [...baseArgs, prompt] : baseArgs;
     const child = spawn(agent.bin, args, {
       stdio: ["pipe", "pipe", "pipe"],
     });

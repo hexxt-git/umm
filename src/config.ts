@@ -12,6 +12,9 @@ export interface Config {
   agent: string;
   length: Length;
   sources: Sources;
+  // Empty/absent ⇒ let the agent pick its default. Only ever a name the agent
+  // itself reported (see agents/discover.ts), so it stays valid.
+  model?: string;
 }
 
 export const DEFAULTS: Config = {

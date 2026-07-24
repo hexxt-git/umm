@@ -4,7 +4,7 @@
 // Arg parsing rule: only argv[0] may be a known flag. Everything else is the
 // query, verbatim. This is what lets `umm what does --force do` work: --force
 // is not in position 0, so it stays part of the question.
-import { AGENTS } from "./agents.js";
+import { AGENTS } from "./agents/index.js";
 import { loadConfig, configExists } from "./config.js";
 import { buildPrompt, runAgent } from "./run.js";
 import { render } from "./render/markdown.js";
@@ -38,7 +38,7 @@ async function answer(query: string, raw: boolean): Promise<void> {
   const spinner = startSpinner();
   let output: string;
   try {
-    output = await runAgent(agent, prompt);
+    output = await runAgent(agent, prompt, config.model);
   } catch (err) {
     spinner.stop();
     fail((err as Error).message);

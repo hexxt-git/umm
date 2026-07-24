@@ -1,9 +1,9 @@
-// Interactive config wizard. Dependency-free: raw-mode stdin, arrow-key select,
-// rendered to stderr so it never interferes with piped stdout. Covers the three
-// settings the skill and CLI read — agent, answer length, sources — and shows
-// which agents are actually installed.
+// Interactive config wizard. Dependency-free raw-mode select, rendered to
+// stderr so it never interferes with piped stdout.
 import { emitKeypressEvents } from "node:readline";
-import { AGENTS, listAgents } from "./agents.js";
+import { AGENTS } from "./agents/index.js";
+import { listAgents } from "./agents/registry.js";
+import { discoverModels } from "./agents/discover.js";
 import {
   loadConfig,
   saveConfig,
@@ -21,9 +21,7 @@ interface Choice<T> {
   disabled?: boolean;
 }
 
-// Renders a single-select list and resolves with the chosen value. Arrow keys
-// or j/k move, Enter confirms, Ctrl-C / Esc aborts. Disabled rows are skippable
-// only in that they can't be selected.
+// Single-select list: arrows/jk move, Enter confirms, Ctrl-C/Esc aborts.
 function select<T>(
   title: string,
   choices: Choice<T>[],
@@ -127,6 +125,28 @@ export async function runWizard(): Promise<void> {
       agentInitial,
     );
 
+    // Model list comes from the agent itself; skipped when it exposes none.
+    out.write(style("  detecting models…", sgr.dim));
+    const models = await discoverModels(AGENTS[agent]);
+    out.write("\r\x1b[K");
+    let model: string | undefined;
+    if (models.length) {
+      const modelChoices: Choice<string>[] = [
+        { value: "", label: "Default", hint: "agent's own default" },
+        ...models.map((m) => ({ value: m, label: m })),
+      ];
+      const modelInitial = Math.max(
+        0,
+        modelChoices.findIndex((c) => c.value === (current.model ?? "")),
+      );
+      model =
+        (await select(
+          "Which model should it use?",
+          modelChoices,
+          modelInitial,
+        )) || undefined;
+    }
+
     const length = await select<Length>(
       "How long should answers be?",
       [
@@ -146,7 +166,7 @@ export async function runWizard(): Promise<void> {
       ["on", "off"].indexOf(current.sources),
     );
 
-    config = { agent, length, sources };
+    config = { agent, length, sources, ...(model ? { model } : {}) };
   } catch {
     out.write(style("cancelled — nothing saved.\n", sgr.dim));
     process.exit(1);
@@ -157,7 +177,8 @@ export async function runWizard(): Promise<void> {
     "\n" +
       style("saved", theme.accent) +
       style(` → ${configPath()}\n`, sgr.dim) +
-      style(`  agent: ${AGENTS[config.agent].name}\n`, sgr.dim) +
+      style(`  agent: ${AGENTS[config.agent].name}`, sgr.dim) +
+      style(config.model ? `   model: ${config.model}\n` : "\n", sgr.dim) +
       style(
         `  length: ${config.length}   sources: ${config.sources}\n`,
         sgr.dim,
