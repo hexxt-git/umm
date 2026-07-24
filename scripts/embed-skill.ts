@@ -2,7 +2,7 @@
 // Embeds the skill markdown into src/skill.generated.ts so the CLI has no
 // runtime file dependency and compiles into a single binary. SKILL.md at the
 // repo root is the single source of truth (root placement also makes the repo
-// installable directly via `npx skills add <owner>/umm`); its yaml frontmatter
+// installable directly via `npx skills add hexxt-git/umm`); its yaml frontmatter
 // is stripped here since the CLI feeds the body as a prompt.
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

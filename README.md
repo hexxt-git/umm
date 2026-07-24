@@ -37,14 +37,16 @@ No quotes. No ceremony. No `"..."` around your question.
 **With npm:**
 
 ```console
-npm install -g umm     # or just: npx umm <question>
+npm install -g @hexxt/umm     # or just: npx @hexxt/umm <question>
 ```
+
+— or —
 
 **Standalone binary** (macOS · Linux · Windows) — grab it from
 [Releases](../../releases), or:
 
 ```console
-brew install <owner>/tap/umm
+brew install hexxt-git/tap/umm
 ```
 
 First run drops you into a 10-second setup wizard. Re-run it any time with
@@ -80,7 +82,7 @@ The brain is portable. Drop it into any agent that speaks the
 [Agent Skills](https://agentskills.io) standard:
 
 ```console
-npx skills add <owner>/umm
+npx skills add hexxt-git/umm
 ```
 
 ---

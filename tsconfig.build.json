@@ -1,11 +1,11 @@
 {
   // Emit config for the npm release: compiles src/ to plain ESM JavaScript in
-  // dist/, targeting ES2019 so the published package runs on much older Node
+  // dist-npm/, targeting ES2019 so the published package runs on much older Node
   // (>=14, where ESM is stable) with no runtime TypeScript needed.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "outDir": "dist",
+    "outDir": "dist-npm",
     "rootDir": "src",
     "declaration": false,
     "sourceMap": false,

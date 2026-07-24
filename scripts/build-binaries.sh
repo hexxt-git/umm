@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Cross-compiles standalone binaries with Bun, one per platform, optimized for
 # size. Bun embeds its runtime, so these are inherently large; --minify shrinks
-# the bundled JS, and we strip sourcemaps. Output lands in dist/bin/.
+# the bundled JS, and we strip sourcemaps. Output lands in dist-bin/.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 ENTRY="src/index.ts"
-OUTDIR="dist/bin"
+OUTDIR="dist-bin"
 mkdir -p "$OUTDIR"
 
 # Ensure the embedded skill is current before compiling.

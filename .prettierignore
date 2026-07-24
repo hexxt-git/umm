@@ -1,6 +1,7 @@
 # build + deps
 node_modules/
-dist/
+dist-npm/
+dist-bin/
 
 # generated from SKILL.md / cli.md at build time
 src/skill.generated.ts

@@ -2,7 +2,8 @@
 node_modules/
 
 # build output
-dist/
+dist-npm/
+dist-bin/
 
 # generated: embedded from .claude/skills/umm/SKILL.md at build time
 src/skill.generated.ts
