@@ -4,10 +4,10 @@
 import { spawn } from "node:child_process";
 import type { Agent } from "./agents.js";
 import type { Config } from "./config.js";
-import { SKILL } from "./skill.generated.js";
+import { SKILL, CLI_ADDENDUM } from "./skill.generated.js";
 
-// Assembles skill body + a Configuration block reflecting the user's settings +
-// the query, in the same shape the validation harness proved out.
+// Assembles skill body + the CLI-only addendum + a Configuration block
+// reflecting the user's settings + the query, in the shape the harness proved.
 export function buildPrompt(query: string, config: Config): string {
   const configBlock = [
     "## Configuration",
@@ -15,14 +15,16 @@ export function buildPrompt(query: string, config: Config): string {
     `- sources: ${config.sources}`,
   ].join("\n");
 
-  return `${SKILL}\n\n${configBlock}\n\n---\n\numm ${query}`;
+  return `${SKILL}\n\n${CLI_ADDENDUM}\n\n${configBlock}\n\n---\n\numm ${query}`;
 }
 
-// Spawns the agent, writing the prompt to stdin, and resolves with stdout.
+// Spawns the agent and resolves with its stdout. The prompt is delivered either
+// on stdin or as the final argv element, per the adapter's `input` mode.
 // Rejects with a descriptive error on non-zero exit or spawn failure.
 export function runAgent(agent: Agent, prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(agent.bin, agent.args, {
+    const args = agent.input === "arg" ? [...agent.args, prompt] : agent.args;
+    const child = spawn(agent.bin, args, {
       stdio: ["pipe", "pipe", "pipe"],
     });
 
@@ -33,7 +35,11 @@ export function runAgent(agent: Agent, prompt: string): Promise<string> {
 
     child.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "ENOENT") {
-        reject(new Error(`${agent.name} is not installed (${agent.bin} not found on PATH)`));
+        reject(
+          new Error(
+            `${agent.name} is not installed (${agent.bin} not found on PATH)`,
+          ),
+        );
       } else {
         reject(new Error(`could not start ${agent.bin}: ${err.message}`));
       }
@@ -48,7 +54,9 @@ export function runAgent(agent: Agent, prompt: string): Promise<string> {
       }
     });
 
-    child.stdin.write(prompt);
+    if (agent.input === "stdin") {
+      child.stdin.write(prompt);
+    }
     child.stdin.end();
   });
 }

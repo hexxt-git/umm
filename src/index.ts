@@ -68,7 +68,9 @@ async function main(): Promise<void> {
   let raw = false;
   let rest = argv;
 
-  if (head === "--config") {
+  // `--config`, or the bare word `config` when it's the only argument, opens
+  // the wizard. `umm config <more words>` stays a real question about config.
+  if (head === "--config" || (head === "config" && argv.length === 1)) {
     await runWizard();
     process.exit(0);
   } else if (head === "--raw") {

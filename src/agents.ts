@@ -11,40 +11,44 @@ export interface Agent {
   name: string;
   bin: string;
   args: string[];
-  stdin: boolean;
+  // How the prompt reaches the agent: piped to stdin, or appended as the final
+  // argv element. Agents disagree on this, so it is per-adapter.
+  input: "stdin" | "arg";
 }
 
 export const AGENTS: Record<string, Agent> = {
   claude: {
     name: "Claude Code",
     bin: "claude",
-    // prompt on stdin via -p; allow the web tools the skill relies on.
+    // prompt on stdin via -p; allow only the read-only web tools the skill uses.
     args: ["-p", "--allowedTools", "WebSearch,WebFetch"],
-    stdin: true,
+    input: "stdin",
+  },
+  antigravity: {
+    name: "Antigravity (agy)",
+    bin: "agy",
+    // -p / --print runs one prompt non-interactively; the prompt is the arg.
+    args: ["-p"],
+    input: "arg",
+  },
+  opencode: {
+    name: "opencode",
+    bin: "opencode",
+    // `opencode run <message>` takes the prompt as a positional argument.
+    args: ["run"],
+    input: "arg",
   },
   cursor: {
     name: "Cursor CLI",
     bin: "cursor-agent",
     args: ["-p"],
-    stdin: true,
-  },
-  gemini: {
-    name: "Gemini CLI",
-    bin: "gemini",
-    args: ["-p"],
-    stdin: true,
-  },
-  opencode: {
-    name: "opencode",
-    bin: "opencode",
-    args: ["run"],
-    stdin: true,
+    input: "stdin",
   },
   codex: {
     name: "Codex CLI",
     bin: "codex",
     args: ["exec"],
-    stdin: true,
+    input: "stdin",
   },
 };
 
