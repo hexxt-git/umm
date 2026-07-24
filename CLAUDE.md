@@ -62,6 +62,30 @@ Bun) to run the `.ts` scripts directly.
 - **Bun binaries** (`dist-bin/`) for brew/direct download, built from the same
   source.
 
+## Releasing (Changesets → npm + GitHub Release + Homebrew)
+
+Releases are automated; **never bump the version or publish by hand.** `main` is
+protected and squash-only, which the flow is built around.
+
+- **Per PR:** run `npx changeset` and commit the generated `.changeset/*.md`
+  (bump + one-line summary → changelog + release note). Chores with no user
+  impact need none.
+- **`.github/workflows/release.yml`** (push to `main`) runs `changesets/action`:
+  with pending changesets it opens/updates the **"release: version packages"**
+  PR (bumps `package.json`, writes `CHANGELOG.md`); squash-merging that PR runs
+  `npm run release` (`changeset publish`) → npm publish, then the workflow builds
+  `dist-bin/` binaries, cuts a **`v<version>`** GitHub Release with them attached,
+  and regenerates `Formula/umm.rb` in `hexxt-git/homebrew-tap` via
+  `scripts/render-formula.sh` (version + fresh sha256s).
+- **Tag convention is `v<version>`** (matches the brew URLs); we set
+  `createGithubReleases: false` so changesets' scoped `@hexxt/umm@x` tag doesn't
+  become the release.
+- **`.github/workflows/ci.yml`** runs `format:check` + `typecheck` on PRs.
+- **Secrets/settings** (repo): `NPM_TOKEN` (npm automation token, publish rights
+  on `@hexxt`), `HOMEBREW_TAP_TOKEN` (PAT with contents:write on
+  `homebrew-tap`), and Settings → Actions → "Allow GitHub Actions to create and
+  approve pull requests" enabled.
+
 ## Architecture (src/)
 
 - `index.ts` — entry + arg parsing. **Rule: only `argv[0]` may be a flag**, so
