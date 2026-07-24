@@ -19,7 +19,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # >=22.18 so `node scripts/*.ts` runs directly (native type stripping);
+          # prepare/build:skill/typecheck all execute the .ts scripts unflagged.
+          node-version: 22
           cache: npm
 
       - run: npm ci

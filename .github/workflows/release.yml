@@ -22,7 +22,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # >=22.18 so `node scripts/*.ts` runs directly (prepare + prepack build).
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
           cache: npm
 
