@@ -138,6 +138,22 @@
       .cmds .p {
         color: var(--accent);
       }
+      .cmds .sep {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0.4;
+        font-size: 12px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .cmds .sep::before,
+      .cmds .sep::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: currentColor;
+      }
       .btn {
         display: flex;
         align-items: center;
@@ -290,7 +306,7 @@
       <nav>
         <a href="#features" class="nav-hide">What it does</a>
         <a href="#install" class="nav-hide">Install</a>
-        <a href="https://github.com/hexxt/umm">GitHub</a>
+        <a href="https://github.com/hexxt-git/umm">GitHub</a>
       </nav>
     </header>
 
@@ -316,11 +332,14 @@
             <div>
               <div class="kicker mono">Get it</div>
               <div class="cmds mono">
-                <div><span class="p">$</span> npm install -g umm</div>
-                <div><span class="p">$</span> brew install umm</div>
+                <div><span class="p">$</span> npm install -g @hexxt/umm</div>
+                <div class="sep">or</div>
+                <div>
+                  <span class="p">$</span> brew install hexxt-git/tap/umm
+                </div>
               </div>
             </div>
-            <a class="btn" href="https://github.com/hexxt/umm"
+            <a class="btn" href="https://github.com/hexxt-git/umm"
               >Star on GitHub <span>★</span></a
             >
           </div>

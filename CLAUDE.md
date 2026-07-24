@@ -40,15 +40,16 @@ source and emits real `.js`). Consequence:
 
 - **`node src/index.ts` does NOT work** (Node won't rewrite `.js` → `.ts`).
 - Dev runs through **Bun**: `bun src/index.ts <question>` (or `npm run dev`).
-- npm ships the compiled `dist/`, not the source.
+- npm ships the compiled `dist-npm/`, not the source.
 
 ## Commands
 
 - `npm run dev -- <question>` — run from source via Bun.
-- `npm run build` — embed skill, `tsc -p tsconfig.build.json` → `dist/` (ESM,
+- `npm run build` — embed skill, `tsc -p tsconfig.build.json` → `dist-npm/` (ESM,
   ES2019, Node ≥14), then `postbuild.ts` (shebang + chmod + copy README).
-- `npm run build:binaries` — Bun `--compile` cross-platform binaries. **Bun is
-  required only here.** Binaries are ~60MB (embedded runtime; that's the floor).
+- `npm run build:binaries` — Bun `--compile` cross-platform binaries into
+  `dist-bin/`. **Bun is required only here.** Binaries are ~60MB (embedded
+  runtime; that's the floor).
 - `npm run typecheck` / `npm run format`.
 
 Node ≥14 for the published package; local dev/typecheck wants Node ≥22.18 (or
@@ -56,8 +57,10 @@ Bun) to run the `.ts` scripts directly.
 
 ## Distribution is dual
 
-- **npm** carries portable compiled ESM (`dist/`, Node ≥14). `bin` → `dist/index.js`.
-- **Bun binaries** for brew/direct download, built from the same source.
+- **npm** carries portable compiled ESM (`dist-npm/`, Node ≥14). `bin` →
+  `dist-npm/index.js`.
+- **Bun binaries** (`dist-bin/`) for brew/direct download, built from the same
+  source.
 
 ## Architecture (src/)
 

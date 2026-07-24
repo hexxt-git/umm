@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Post-emit fixups for the dist build: guarantee the CLI entry has a node
+// Post-emit fixups for the dist-npm build: guarantee the CLI entry has a node
 // shebang and is executable (so `npx umm` / the bin symlink work regardless of
 // whether tsc preserved the shebang), and copy README.md alongside the output.
 import { readFileSync, writeFileSync, chmodSync, copyFileSync } from "node:fs";
@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const entry = join(root, "dist/index.js");
+const entry = join(root, "dist-npm/index.js");
 
 let src = readFileSync(entry, "utf8");
 if (!src.startsWith("#!")) {
@@ -16,8 +16,8 @@ if (!src.startsWith("#!")) {
 }
 chmodSync(entry, 0o755);
 
-copyFileSync(join(root, "README.md"), join(root, "dist/README.md"));
+copyFileSync(join(root, "README.md"), join(root, "dist-npm/README.md"));
 
 console.log(
-  "postbuild: dist/index.js executable with shebang; README.md copied",
+  "postbuild: dist-npm/index.js executable with shebang; README.md copied",
 );
