@@ -28,6 +28,11 @@ jobs:
 
       - run: npm ci
 
+      # npm Trusted Publishing (OIDC) needs a recent npm; the runner's bundled
+      # one can be too old. No token is used — auth comes from `id-token: write`
+      # + the trusted publisher configured on npmjs (provenance is automatic).
+      - run: npm install -g npm@latest
+
       # If changeset files are present -> open/refresh the "version packages" PR.
       # If none are present (that PR was just squash-merged) -> run `release`
       # (= `changeset publish`), which builds via prepack, publishes to npm, and
@@ -43,8 +48,6 @@ jobs:
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
 
       # ---- everything below runs only when a publish actually happened ----
 

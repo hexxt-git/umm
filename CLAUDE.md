@@ -75,16 +75,31 @@ protected and squash-only, which the flow is built around.
   PR (bumps `package.json`, writes `CHANGELOG.md`); squash-merging that PR runs
   `npm run release` (`changeset publish`) → npm publish, then the workflow builds
   `dist-bin/` binaries, cuts a **`v<version>`** GitHub Release with them attached,
-  and regenerates `Formula/umm.rb` in `hexxt-git/homebrew-tap` via
-  `scripts/render-formula.sh` (version + fresh sha256s).
-- **Tag convention is `v<version>`** (matches the brew URLs); we set
-  `createGithubReleases: false` so changesets' scoped `@hexxt/umm@x` tag doesn't
-  become the release.
+  and regenerates the formula in the tap via `scripts/render-formula.sh` (version
+  - fresh sha256s).
 - **`.github/workflows/ci.yml`** runs `format:check` + `typecheck` on PRs.
-- **Secrets/settings** (repo): `NPM_TOKEN` (npm automation token, publish rights
-  on `@hexxt`), `HOMEBREW_TAP_TOKEN` (PAT with contents:write on
-  `homebrew-tap`), and Settings → Actions → "Allow GitHub Actions to create and
-  approve pull requests" enabled.
+
+### Facts the pipeline depends on (verified, so an agent needn't re-discover)
+
+- **The tap already exists:** `hexxt-git/homebrew-tap`, a public repo whose
+  `Formula/umm.rb` is a per-platform **binary** formula (four `url` +`sha256`
+  blocks: darwin/linux × arm/intel, pointing at the `v<version>` release assets;
+  `install` drops the downloaded `umm-*` binary in as `umm`). Users install via
+  `brew install hexxt-git/tap/umm`. `render-formula.sh` reproduces this exact
+  shape — keep them in sync if either changes.
+- **Tag convention is `v<version>`** (matches the brew asset URLs). We set
+  `createGithubReleases: false` so changesets' scoped `@hexxt/umm@x` tag doesn't
+  become the release; the `gh release create v<version>` step owns the release.
+- **npm auth is Trusted Publishing (OIDC), no token.** The workflow has
+  `id-token: write` and npm is upgraded to latest in-job (OIDC needs a recent
+  npm); the trusted publisher is configured on npmjs (publisher: GitHub Actions,
+  repo `hexxt-git/umm`, workflow `release.yml`). Provenance is automatic — do not
+  re-add `NPM_TOKEN`/`NODE_AUTH_TOKEN`.
+- **Only the brew push still needs a secret:** `HOMEBREW_TAP_TOKEN`, a PAT with
+  contents:write on `homebrew-tap` (the default `GITHUB_TOKEN` can't write to
+  another repo).
+- **Repo setting required:** Settings → Actions → "Allow GitHub Actions to create
+  and approve pull requests" must be on, or the Version PR can't be opened.
 
 ## Architecture (src/)
 
