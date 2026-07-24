@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // Embeds the skill markdown into src/skill.generated.ts so the CLI has no
-// runtime file dependency and compiles into a single binary. The skill at
-// .claude/skills/umm/SKILL.md is the single source of truth; its yaml
-// frontmatter is stripped here since the CLI feeds the body as a prompt.
+// runtime file dependency and compiles into a single binary. SKILL.md at the
+// repo root is the single source of truth (root placement also makes the repo
+// installable directly via `npx skills add <owner>/umm`); its yaml frontmatter
+// is stripped here since the CLI feeds the body as a prompt.
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const src = readFileSync(join(root, ".claude/skills/umm/SKILL.md"), "utf8");
+const src = readFileSync(join(root, "SKILL.md"), "utf8");
 
 // strip the leading yaml frontmatter block if present
 const body = src.replace(/^---\n[\s\S]*?\n---\n/, "").trimStart();
