@@ -78,7 +78,10 @@ function parse(text: string, inherited: Set<StyleName>): Run[] {
 
     // emphasis delimiters, longest first
     const two = text.slice(i, i + 2);
-    if ((two === "**" || two === "__" || two === "~~") && text[i + 2] !== undefined) {
+    if (
+      (two === "**" || two === "__" || two === "~~") &&
+      text[i + 2] !== undefined
+    ) {
       const close = findClose(text, two, i + 2);
       if (close !== -1) {
         flush();
@@ -90,7 +93,11 @@ function parse(text: string, inherited: Set<StyleName>): Run[] {
         continue;
       }
     }
-    if ((c === "*" || c === "_") && text[i + 1] !== undefined && text[i + 1] !== c) {
+    if (
+      (c === "*" || c === "_") &&
+      text[i + 1] !== undefined &&
+      text[i + 1] !== c
+    ) {
       const close = findClose(text, c, i + 1);
       if (close !== -1) {
         flush();
@@ -119,7 +126,8 @@ function renderRun(run: Run): string {
   if (run.styles.has("italic")) styles.push(sgr.italic);
   if (run.styles.has("strike")) styles.push(sgr.strike);
   if (styles.length) out = style(out, ...styles);
-  if (run.href) out = style(hyperlink(out, run.href), theme.link, sgr.underline);
+  if (run.href)
+    out = style(hyperlink(out, run.href), theme.link, sgr.underline);
   return out;
 }
 

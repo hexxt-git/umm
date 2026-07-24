@@ -18,9 +18,9 @@ const isFence = (l: string) => /^\s*```/.test(l);
 const isHr = (l: string) => /^\s*([-*_])(\s*\1){2,}\s*$/.test(l);
 const isHeading = (l: string) => /^#{1,6}\s/.test(l);
 const isQuote = (l: string) => /^\s*>\s?/.test(l);
-const listMatch = (l: string) =>
-  /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(l);
-const isTableSep = (l: string) => /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && l.includes("-");
+const listMatch = (l: string) => /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(l);
+const isTableSep = (l: string) =>
+  /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && l.includes("-");
 const isTableRow = (l: string) => l.trim().startsWith("|") || l.includes(" | ");
 
 // pad a pre-rendered (possibly styled) cell to a target column width
@@ -35,7 +35,10 @@ function renderHeading(line: string): string[] {
   const text = renderInlineFlat(m[2]);
   const styled = style(text, theme.heading, sgr.bold);
   if (level === 1) {
-    const rule = style("─".repeat(displayWidth(stripAnsi(text))), theme.heading);
+    const rule = style(
+      "─".repeat(displayWidth(stripAnsi(text))),
+      theme.heading,
+    );
     return [styled, rule];
   }
   return [styled];
@@ -114,7 +117,10 @@ function renderTable(rows: string[], width: number): string[] {
     V;
 
   const border = (l: string, m: string, r: string) =>
-    style(l + widths.map((w) => "─".repeat(w + 2)).join(m) + r, theme.tableBorder);
+    style(
+      l + widths.map((w) => "─".repeat(w + 2)).join(m) + r,
+      theme.tableBorder,
+    );
 
   void width;
   return [
@@ -127,7 +133,10 @@ function renderTable(rows: string[], width: number): string[] {
 }
 
 // Main entry: markdown source -> styled terminal string (or raw passthrough).
-export function render(src: string, opts: { color: boolean } = { color: true }): string {
+export function render(
+  src: string,
+  opts: { color: boolean } = { color: true },
+): string {
   if (!opts.color) return src.trimEnd() + "\n";
   setColorEnabled(true);
 
@@ -193,7 +202,11 @@ export function render(src: string, opts: { color: boolean } = { color: true }):
 
     if (listMatch(line)) {
       const buf: string[] = [];
-      while (i < lines.length && (listMatch(lines[i]) || (!isBlank(lines[i]) && /^\s+/.test(lines[i]) && buf.length))) {
+      while (
+        i < lines.length &&
+        (listMatch(lines[i]) ||
+          (!isBlank(lines[i]) && /^\s+/.test(lines[i]) && buf.length))
+      ) {
         buf.push(lines[i++]);
       }
       out.push(...renderList(buf, width));

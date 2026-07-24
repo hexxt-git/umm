@@ -24,7 +24,11 @@ interface Choice<T> {
 // Renders a single-select list and resolves with the chosen value. Arrow keys
 // or j/k move, Enter confirms, Ctrl-C / Esc aborts. Disabled rows are skippable
 // only in that they can't be selected.
-function select<T>(title: string, choices: Choice<T>[], initial: number): Promise<T> {
+function select<T>(
+  title: string,
+  choices: Choice<T>[],
+  initial: number,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const out = process.stderr;
     let idx = Math.max(0, initial);
@@ -104,7 +108,11 @@ export async function runWizard(): Promise<void> {
     disabled: !a.installed,
   }));
   // installed agents first, so the default cursor lands on a usable one
-  agentChoices.sort((a, b) => Number(!!b.hint?.includes("installed")) - Number(!!a.hint?.includes("installed")));
+  agentChoices.sort(
+    (a, b) =>
+      Number(!!b.hint?.includes("installed")) -
+      Number(!!a.hint?.includes("installed")),
+  );
 
   const agentInitial = Math.max(
     0,
@@ -113,7 +121,11 @@ export async function runWizard(): Promise<void> {
 
   let config: Config;
   try {
-    const agent = await select("Which agent should umm use?", agentChoices, agentInitial);
+    const agent = await select(
+      "Which agent should umm use?",
+      agentChoices,
+      agentInitial,
+    );
 
     const length = await select<Length>(
       "How long should answers be?",
@@ -146,6 +158,9 @@ export async function runWizard(): Promise<void> {
       style("saved", theme.accent) +
       style(` → ${configPath()}\n`, sgr.dim) +
       style(`  agent: ${AGENTS[config.agent].name}\n`, sgr.dim) +
-      style(`  length: ${config.length}   sources: ${config.sources}\n`, sgr.dim),
+      style(
+        `  length: ${config.length}   sources: ${config.sources}\n`,
+        sgr.dim,
+      ),
   );
 }

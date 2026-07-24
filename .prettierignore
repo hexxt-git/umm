@@ -1,0 +1,14 @@
+# build + deps
+node_modules/
+dist/
+
+# generated from SKILL.md / cli.md at build time
+src/skill.generated.ts
+
+# lockfiles
+bun.lock
+
+# LLM prompt content — exact wording/whitespace is functional and validated;
+# leave it to be edited by hand, not reflowed by a formatter.
+SKILL.md
+cli.md
