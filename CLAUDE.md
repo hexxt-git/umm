@@ -75,15 +75,15 @@ protected and squash-only, which the flow is built around.
   PR (bumps `package.json`, writes `CHANGELOG.md`); squash-merging that PR runs
   `npm run release` (`changeset publish`) → npm publish, then the workflow builds
   `dist-bin/` binaries, cuts a **`v<version>`** GitHub Release with them attached,
-  and regenerates the formula in the tap via `scripts/render-formula.sh` (version
-  - fresh sha256s).
+  and regenerates the formula in the tap via `scripts/render-formula.sh` (new
+  version and fresh sha256s).
 - **`.github/workflows/ci.yml`** runs `format:check` + `typecheck` on PRs.
 
 ### Facts the pipeline depends on (verified, so an agent needn't re-discover)
 
 - **The tap already exists:** `hexxt-git/homebrew-tap`, a public repo whose
-  `Formula/umm.rb` is a per-platform **binary** formula (four `url` +`sha256`
-  blocks: darwin/linux × arm/intel, pointing at the `v<version>` release assets;
+  `Formula/umm.rb` is a per-platform **binary** formula (four url/sha256 blocks:
+  darwin/linux × arm/intel, pointing at the `v<version>` release assets;
   `install` drops the downloaded `umm-*` binary in as `umm`). Users install via
   `brew install hexxt-git/tap/umm`. `render-formula.sh` reproduces this exact
   shape — keep them in sync if either changes.
