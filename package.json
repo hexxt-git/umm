@@ -1,0 +1,28 @@
+{
+  "name": "umm",
+  "version": "0.1.0",
+  "description": "A faster way to ask. Direct, structured answers in your terminal.",
+  "type": "module",
+  "bin": {
+    "umm": "dist/index.js"
+  },
+  "scripts": {
+    "build:skill": "node scripts/embed-skill.ts",
+    "build": "npm run build:skill && tsc -p tsconfig.build.json && node scripts/postbuild.ts",
+    "build:binaries": "npm run build:skill && bash scripts/build-binaries.sh",
+    "typecheck": "npm run build:skill && tsc --noEmit",
+    "prepack": "npm run build",
+    "dev": "bun src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "license": "MIT"
+}

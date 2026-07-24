@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# generated: embedded from .claude/skills/umm/SKILL.md at build time
+src/skill.generated.ts
+
+# logs
+*.log
+npm-debug.log*
+
+# runtime / test artifacts
+out/
+scratchpad/
+
+# os
+.DS_Store
+Thumbs.db
+
+# editors
+.idea/
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# env
+.env
+.env.local
