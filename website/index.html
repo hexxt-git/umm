@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>umm 🤔 — a faster way to ask</title>
+    <meta
+      name="description"
+      content="Stop opening a browser tab. Stop starting a whole chat. Get a tight, structured answer right in your terminal."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="umm 🤔 — a faster way to ask" />
+    <meta
+      property="og:description"
+      content="A tight, structured answer right in your terminal. No browser tab, no chat session."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://umm.hexxt.dev" />
+    <meta property="og:image" content="https://umm.hexxt.dev/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --accent: #ee8a0c;
+        --btn: #f5b301;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        min-height: 100vh;
+        background: #fff;
+        color: #111;
+        font-family: "Space Grotesk", sans-serif;
+        display: flex;
+        flex-direction: column;
+      }
+      a {
+        color: #111;
+        text-decoration: none;
+      }
+      a:hover {
+        color: #c46a08;
+      }
+      ::selection {
+        background: #fbd24e;
+        color: #111;
+      }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        width: 100%;
+        padding-inline: clamp(20px, 5vw, 40px);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-block: 18px;
+      }
+      .logo {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 20px;
+        letter-spacing: -0.5px;
+      }
+      nav {
+        display: flex;
+        align-items: center;
+        gap: clamp(16px, 3vw, 30px);
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      h1 {
+        font-size: clamp(34px, 7vw, 60px);
+        line-height: 1.02;
+        font-weight: 700;
+        letter-spacing: -2.5px;
+        margin: 0 auto 16px;
+        max-width: 760px;
+        text-wrap: balance;
+      }
+      .lead {
+        font-size: clamp(15px, 2.5vw, 18px);
+        line-height: 1.45;
+        color: #444;
+        margin: 0 auto;
+        max-width: 540px;
+        text-wrap: pretty;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        border: 1px solid #111;
+      }
+      .hero-left {
+        padding: 24px 28px;
+        border-right: 1px solid #111;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 22px;
+      }
+      .kicker {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #c46a08;
+        font-weight: 500;
+        margin-bottom: 14px;
+      }
+      .cmds {
+        font-size: 15px;
+        line-height: 2;
+      }
+      .cmds .p {
+        color: var(--accent);
+      }
+      .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #111;
+        background: var(--btn);
+        padding: 12px;
+        border: 1px solid #111;
+      }
+
+      .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 18px;
+        border-bottom: 1px solid #111;
+      }
+      .dot {
+        width: 11px;
+        height: 11px;
+        display: inline-block;
+      }
+      #term {
+        padding: 18px 20px 20px;
+        font-size: 13.5px;
+        line-height: 1.55;
+        text-align: left;
+        min-height: 288px;
+      }
+      #term .head {
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+      #term .body {
+        color: #444;
+        margin-bottom: 10px;
+      }
+      #term .pt {
+        color: #444;
+        margin-bottom: 5px;
+        display: flex;
+        gap: 9px;
+      }
+      #term .pt span:first-child {
+        color: var(--accent);
+      }
+      #term .follow {
+        margin-top: 12px;
+      }
+      #term .follow span {
+        background: #fbd24e;
+        padding: 6px 10px;
+        color: #111;
+      }
+      .fade {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .toolchain {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding-block: 16px;
+      }
+      .toolchain .label {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #999;
+        font-weight: 500;
+      }
+      .toolchain b {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .toolchain .sep {
+        color: var(--accent);
+      }
+
+      .feat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 32px;
+        border-top: 1px solid #111;
+        padding-top: 20px;
+        margin-bottom: 24px;
+      }
+      .feat .n {
+        font-size: 16px;
+        color: var(--accent);
+      }
+      .feat .t {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .feat .top {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .feat .d {
+        font-size: 14px;
+        line-height: 1.5;
+        color: #555;
+      }
+      .feat .d code {
+        color: #111;
+      }
+
+      footer {
+        text-align: center;
+        padding: 14px 0 20px;
+        font-size: 13px;
+        color: #999;
+      }
+      footer a {
+        color: #c46a08;
+        font-weight: 500;
+      }
+
+      @media (max-width: 780px) {
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+        .hero-left {
+          border-right: none;
+          border-bottom: 1px solid #111;
+        }
+        .feat-grid {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+        .nav-hide {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <div class="logo">
+        <span>umm</span><span style="font-size: 17px">🤔</span>
+      </div>
+      <nav>
+        <a href="#features" class="nav-hide">What it does</a>
+        <a href="#install" class="nav-hide">Install</a>
+        <a href="https://github.com/hexxt/umm">GitHub</a>
+      </nav>
+    </header>
+
+    <main style="flex: 1; display: flex; flex-direction: column">
+      <section class="wrap" style="padding-block: 18px 6px; text-align: center">
+        <h1>
+          <span style="color: var(--accent)">umm</span>&nbsp;what is your
+          question?
+        </h1>
+        <p class="lead">
+          Stop opening a browser tab. Stop starting a whole chat. Get a tight,
+          structured answer right in your terminal.
+        </p>
+      </section>
+
+      <section
+        class="wrap"
+        id="install"
+        style="max-width: 1080px; padding-block: 26px 0"
+      >
+        <div class="hero-grid">
+          <div class="hero-left">
+            <div>
+              <div class="kicker mono">Get it</div>
+              <div class="cmds mono">
+                <div><span class="p">$</span> npm install -g umm</div>
+                <div><span class="p">$</span> brew install umm</div>
+              </div>
+            </div>
+            <a class="btn" href="https://github.com/hexxt/umm"
+              >Star on GitHub <span>★</span></a
+            >
+          </div>
+          <div style="display: flex; flex-direction: column">
+            <div class="term-bar">
+              <span class="dot" style="background: var(--accent)"></span>
+              <span class="dot" style="background: var(--btn)"></span>
+              <span class="dot" style="background: #ddd"></span>
+              <span
+                class="mono"
+                style="margin-left: 6px; font-size: 12px; color: #999"
+                >terminal</span
+              >
+            </div>
+            <div id="term" class="mono"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap toolchain" style="max-width: 1080px">
+        <span class="label mono">Runs on top of</span>
+        <b>Claude Code</b><span class="sep">·</span> <b>Antigravity CLI</b
+        ><span class="sep">·</span> <b>Codex CLI</b><span class="sep">·</span>
+        <b>Cursor CLI</b><span class="sep">·</span>
+        <b>OpenCode</b>
+      </section>
+
+      <section
+        class="wrap"
+        id="features"
+        style="max-width: 1080px; padding-bottom: 24px"
+      >
+        <div class="feat-grid">
+          <div class="feat">
+            <div class="top">
+              <span class="n mono">01</span><span class="t">Just ask</span>
+            </div>
+            <div class="d">
+              No quotes, no flags. Type <code class="mono">umm</code> and the
+              thing you want to know.
+            </div>
+          </div>
+          <div class="feat">
+            <div class="top">
+              <span class="n mono">02</span
+              ><span class="t">Fixes your spelling</span>
+            </div>
+            <div class="d">
+              <code class="mono">photosinthisis</code> → answers photosynthesis,
+              and names what else you meant.
+            </div>
+          </div>
+          <div class="feat">
+            <div class="top">
+              <span class="n mono">03</span><span class="t">Pipes cleanly</span>
+            </div>
+            <div class="d">
+              <code class="mono">umm x | pbcopy</code> gets plain markdown — no
+              color codes.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      made by <a href="https://hexxt.dev">hexxt.dev</a>
+    </footer>
+
+    <script>
+      const pairs = [
+        {
+          q: "why is the sky blue",
+          head: "why the sky is blue",
+          body: "Sunlight is made of every colour mixed together, and when it hits the air the blue part gets knocked sideways far more than the rest — so blue reaches your eyes from every direction.",
+          points: [
+            "Sunsets go red because near the horizon light travels through much more air, and the blue is scattered away",
+            "Violet scatters even more, but there's less of it and our eyes barely see it",
+          ],
+          follow: "umm why are sunsets red · umm why is the sea blue",
+        },
+        {
+          q: "how do i undo a git commit",
+          head: "undo the last commit",
+          body: "Run  git reset --soft HEAD~1  — it rewinds the commit but keeps every change staged, so nothing is lost.",
+          points: [
+            "Add  --hard  instead to throw the changes away too (careful, no undo)",
+            "Already pushed it? Use  git revert  so history stays honest",
+          ],
+          follow: "umm git unstage a file · umm what is git reflog",
+        },
+        {
+          q: "the thing that turns dc into ac",
+          head: "that's an inverter",
+          body: "An inverter converts direct current into alternating current — it is what turns solar-panel and battery power into the AC your home runs on.",
+          points: [
+            "The opposite device, AC into DC, is a rectifier",
+            "One that does both directions is a bi-directional converter",
+          ],
+          follow: "umm what is a rectifier · umm how do solar panels work",
+        },
+        {
+          q: "photosinthisis",
+          head: "photosynthesis",
+          body: "Did you mean photosynthesis? Plants turn sunlight, water and CO₂ into sugar and oxygen, mostly inside their leaves.",
+          points: [
+            "Chlorophyll is the green pigment that captures the light",
+            "It all happens in tiny structures called chloroplasts",
+          ],
+          follow: "umm what is chlorophyll · umm how do leaves make sugar",
+        },
+      ];
+      const term = document.getElementById("term");
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const esc = (s) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      async function playPair(p) {
+        term.style.opacity = "1";
+        term.innerHTML = "";
+        const prompt = document.createElement("div");
+        prompt.style.marginBottom = "12px";
+        prompt.innerHTML = '<span style="color:var(--accent)">$</span> umm ';
+        const qSpan = document.createElement("span");
+        const cursor = document.createElement("span");
+        cursor.textContent = "▋";
+        cursor.style.cssText = "color:var(--accent); margin-left:1px";
+        prompt.append(qSpan, cursor);
+        term.append(prompt);
+
+        for (const ch of p.q) {
+          qSpan.textContent += ch;
+          await wait(36);
+        }
+        await wait(460);
+        cursor.remove();
+
+        const lines = [
+          `<div class="head">${esc(p.head)}</div>`,
+          `<div class="body">${esc(p.body)}</div>`,
+          ...p.points.map(
+            (pt) =>
+              `<div class="pt"><span>-</span><span>${esc(pt)}</span></div>`,
+          ),
+          `<div class="follow"><span>→ ${esc(p.follow)}</span></div>`,
+        ];
+        for (const ln of lines) {
+          const d = document.createElement("div");
+          d.className = "fade";
+          d.innerHTML = ln;
+          term.append(d);
+          requestAnimationFrame(() => {
+            d.style.opacity = "1";
+          });
+          await wait(240);
+        }
+        await wait(2800);
+        term.style.transition = "opacity .35s ease";
+        term.style.opacity = "0";
+        await wait(380);
+      }
+
+      (async () => {
+        while (true) for (const p of pairs) await playPair(p);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Post-emit fixups for the dist build: guarantee the CLI entry has a node
-// shebang and is executable, so `npx umm` / the bin symlink work regardless of
-// whether tsc preserved the shebang.
-import { readFileSync, writeFileSync, chmodSync } from "node:fs";
+// shebang and is executable (so `npx umm` / the bin symlink work regardless of
+// whether tsc preserved the shebang), and copy README.md alongside the output.
+import { readFileSync, writeFileSync, chmodSync, copyFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -15,4 +15,9 @@ if (!src.startsWith("#!")) {
   writeFileSync(entry, src);
 }
 chmodSync(entry, 0o755);
-console.log("postbuild: dist/index.js is executable" + (src.startsWith("#!") ? " with shebang" : ""));
+
+copyFileSync(join(root, "README.md"), join(root, "dist/README.md"));
+
+console.log(
+  "postbuild: dist/index.js executable with shebang; README.md copied",
+);
