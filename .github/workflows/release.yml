@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# One release run at a time so the Version PR and the publish never race.
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write # push tags, create the GitHub Release
+  pull-requests: write # open/update the "version packages" PR
+  id-token: write # npm provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # changesets needs full history + tags
+
+      - uses: actions/setup-node@v4
+        with:
+          # >=22.18 so `node scripts/*.ts` runs directly (prepare + prepack build).
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+
+      - run: npm ci
+
+      # npm Trusted Publishing (OIDC) needs a recent npm; the runner's bundled
+      # one can be too old. No token is used — auth comes from `id-token: write`
+      # + the trusted publisher configured on npmjs (provenance is automatic).
+      - run: npm install -g npm@latest
+
+      # If changeset files are present -> open/refresh the "version packages" PR.
+      # If none are present (that PR was just squash-merged) -> run `release`
+      # (= `changeset publish`), which builds via prepack, publishes to npm, and
+      # tags. GitHub Releases are created by us below so we keep the `v<version>`
+      # tag convention and can attach the binaries.
+      - name: Version PR or publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: npm run release
+          title: "release: version packages"
+          commit: "release: version packages"
+          createGithubReleases: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---- everything below runs only when a publish actually happened ----
+
+      - name: Read published version
+        if: steps.changesets.outputs.published == 'true'
+        id: v
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Bun
+        if: steps.changesets.outputs.published == 'true'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Build standalone binaries
+        if: steps.changesets.outputs.published == 'true'
+        run: npm run build:binaries
+
+      - name: Extract changelog notes
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          V='${{ steps.v.outputs.version }}'
+          awk -v ver="$V" '
+            $0 ~ "^## +" ver "( |$)" { flag=1; next }
+            /^## / && flag { flag=0 }
+            flag { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          [ -s RELEASE_NOTES.md ] || echo "Release v$V" > RELEASE_NOTES.md
+
+      - name: Create GitHub Release with binaries
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V='${{ steps.v.outputs.version }}'
+          gh release create "v$V" dist-bin/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "v$V" \
+            --notes-file RELEASE_NOTES.md
+
+      # Regenerate Formula/umm.rb in the tap (version + fresh sha256s) and push.
+      # Needs a PAT with contents:write on hexxt-git/homebrew-tap — the default
+      # GITHUB_TOKEN can only write to this repo.
+      - name: Bump Homebrew formula
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          V='${{ steps.v.outputs.version }}'
+          git clone --depth 1 "https://x-access-token:${TAP_TOKEN}@github.com/hexxt-git/homebrew-tap.git" tap
+          bash scripts/render-formula.sh "$V" dist-bin > tap/Formula/umm.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/umm.rb
+          git commit -m "umm $V"
+          git push

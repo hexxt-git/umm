@@ -62,6 +62,45 @@ Bun) to run the `.ts` scripts directly.
 - **Bun binaries** (`dist-bin/`) for brew/direct download, built from the same
   source.
 
+## Releasing (Changesets → npm + GitHub Release + Homebrew)
+
+Releases are automated; **never bump the version or publish by hand.** `main` is
+protected and squash-only, which the flow is built around.
+
+- **Per PR:** run `npx changeset` and commit the generated `.changeset/*.md`
+  (bump + one-line summary → changelog + release note). Chores with no user
+  impact need none.
+- **`.github/workflows/release.yml`** (push to `main`) runs `changesets/action`:
+  with pending changesets it opens/updates the **"release: version packages"**
+  PR (bumps `package.json`, writes `CHANGELOG.md`); squash-merging that PR runs
+  `npm run release` (`changeset publish`) → npm publish, then the workflow builds
+  `dist-bin/` binaries, cuts a **`v<version>`** GitHub Release with them attached,
+  and regenerates the formula in the tap via `scripts/render-formula.sh` (new
+  version and fresh sha256s).
+- **`.github/workflows/ci.yml`** runs `format:check` + `typecheck` on PRs.
+
+### Facts the pipeline depends on (verified, so an agent needn't re-discover)
+
+- **The tap already exists:** `hexxt-git/homebrew-tap`, a public repo whose
+  `Formula/umm.rb` is a per-platform **binary** formula (four url/sha256 blocks:
+  darwin/linux × arm/intel, pointing at the `v<version>` release assets;
+  `install` drops the downloaded `umm-*` binary in as `umm`). Users install via
+  `brew install hexxt-git/tap/umm`. `render-formula.sh` reproduces this exact
+  shape — keep them in sync if either changes.
+- **Tag convention is `v<version>`** (matches the brew asset URLs). We set
+  `createGithubReleases: false` so changesets' scoped `@hexxt/umm@x` tag doesn't
+  become the release; the `gh release create v<version>` step owns the release.
+- **npm auth is Trusted Publishing (OIDC), no token.** The workflow has
+  `id-token: write` and npm is upgraded to latest in-job (OIDC needs a recent
+  npm); the trusted publisher is configured on npmjs (publisher: GitHub Actions,
+  repo `hexxt-git/umm`, workflow `release.yml`). Provenance is automatic — do not
+  re-add `NPM_TOKEN`/`NODE_AUTH_TOKEN`.
+- **Only the brew push still needs a secret:** `HOMEBREW_TAP_TOKEN`, a PAT with
+  contents:write on `homebrew-tap` (the default `GITHUB_TOKEN` can't write to
+  another repo).
+- **Repo setting required:** Settings → Actions → "Allow GitHub Actions to create
+  and approve pull requests" must be on, or the Version PR can't be opened.
+
 ## Architecture (src/)
 
 - `index.ts` — entry + arg parsing. **Rule: only `argv[0]` may be a flag**, so
