@@ -109,14 +109,17 @@ protected and squash-only, which the flow is built around.
 - `agents/` — the adapter layer. `index.ts` is the table **as data** and nothing
   else; siblings hold the behavior. Each agent has an `input` mode: `"stdin"`
   (claude, cursor, codex) or `"arg"` (antigravity/`agy`, opencode). Verified:
-  claude, antigravity, opencode. **Unverified guesses: cursor, codex** — and each
-  agent's web-access flag matters (wrong flag ⇒ silent stale answers).
+  claude, antigravity, opencode, codex, cursor. Each agent's web-access flag
+  matters (wrong flag ⇒ silent stale answers); cursor needs `--auto-review` (in
+  its args) to auto-run its read-only web-search tool — plain `-p` leaves tool
+  calls unapproved and answers from stale context.
   - `types.ts` — the `Agent` / `AgentInfo` shapes.
   - `registry.ts` — `isInstalled` / `listAgents` (which binaries are on PATH).
   - `discover.ts` — `discoverModels` (never hardcodes a model list) + the
     `runModels` helper for agents with a `models` subcommand (agy, opencode).
   - `claude.ts` — mines model ids from the claude binary (no list command).
   - `codex.ts` — asks codex's app-server for `model/list` over JSON-RPC.
+  - `cursor.ts` — parses `cursor-agent models`.
 - `run.ts` — builds `SKILL + CLI_ADDENDUM + config + query`, spawns the agent,
   returns stdout. **No fallback by design**: if the agent fails, surface and exit.
 - `config.ts` — JSON at `$XDG_CONFIG_HOME/umm/config.json` (`~/.config/umm/…`).

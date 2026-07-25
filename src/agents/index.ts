@@ -5,6 +5,7 @@ import type { Agent } from "./types.js";
 import { runModels } from "./discover.js";
 import { listClaudeModels } from "./claude.js";
 import { listCodexModels } from "./codex.js";
+import { listCursorModels } from "./cursor.js";
 
 export const AGENTS: Record<string, Agent> = {
   claude: {
@@ -35,10 +36,12 @@ export const AGENTS: Record<string, Agent> = {
   cursor: {
     name: "Cursor CLI",
     bin: "cursor-agent",
-    args: ["-p"],
+    // --auto-review auto-runs safe read-only tools (incl. web search); without
+    // it, -p mode leaves tool calls unapproved and answers from stale context.
+    args: ["-p", "--auto-review"],
     input: "stdin",
-    // UNVERIFIED: flag and any list command not tested on a real install.
     modelFlag: "--model",
+    listModels: listCursorModels,
   },
   codex: {
     name: "Codex CLI",
