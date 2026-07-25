@@ -1,5 +1,12 @@
 # @hexxt/umm
 
+## 0.2.1
+
+### Patch Changes
+
+- 7ddc706: Fix Antigravity (agy) answering the wrong question: `-p` takes the prompt as its
+  value, so the injected `--effort low` was being sent as the question instead.
+
 ## 0.2.0
 
 ### Minor Changes
