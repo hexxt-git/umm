@@ -19,8 +19,11 @@ export const AGENTS: Record<string, Agent> = {
   antigravity: {
     name: "Antigravity (agy)",
     bin: "agy",
+    // -p takes the prompt as its *value*, so nothing may come between it and
+    // the question — hence flagsFirst.
     args: ["-p"],
     input: "arg",
+    flagsFirst: true,
     modelFlag: "--model",
     listModels: () => runModels("agy", ["models"]),
     effortArgs: ["--effort", "low"],

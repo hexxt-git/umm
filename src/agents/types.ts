@@ -11,6 +11,10 @@ export interface Agent {
   // Args always injected to force low reasoning effort — umm is for quick
   // lookups, not deep research. Absent ⇒ agent has no effort flag.
   effortArgs?: string[];
+  // Put model/effort flags *before* `args` instead of after. Needed when the
+  // last entry in `args` consumes the next argument as the prompt (agy's -p),
+  // which would otherwise swallow a flag and drop the real question.
+  flagsFirst?: boolean;
 }
 
 export interface AgentInfo extends Agent {
