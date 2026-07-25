@@ -14,7 +14,7 @@ export function listClaudeModels(): string[] {
     stdio: ["ignore", "pipe", "ignore"],
   });
 
-  // Naming the alias families keeps out internal noise (mythos/instant/desktop).
+  // Naming the alias families keeps out internal noise.
   const ids =
     out.match(/claude-(?:opus|sonnet|haiku|fable)-\d+(?:-\d+)?/g) ?? [];
 

@@ -1,9 +1,5 @@
-// Display-width measurement. Terminal wrapping must count *columns*, not
-// characters: a `**bold**` span carries ANSI escapes worth zero columns, CJK
-// and most emoji occupy two, and combining marks occupy zero. Getting this
-// wrong is the classic "wraps at the wrong place" bug, so it lives on its own.
-
-// Matches a CSI/SGR escape sequence (e.g. "\x1b[1m") and OSC hyperlinks.
+// Display-width measurement: wrapping must count columns, not characters. ANSI
+// escapes are zero columns, CJK/most emoji are two, combining marks are zero.
 const ANSI_RE =
   // eslint-disable-next-line no-control-regex
   /[][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]*)*)?)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g;
@@ -12,9 +8,8 @@ export function stripAnsi(s: string): string {
   return s.replace(ANSI_RE, "");
 }
 
-// True for codepoints that render two columns wide (CJK, wide kana, most
-// emoji). Ranges follow the East Asian Width "W"/"F" categories, abridged to
-// the blocks that actually show up in answers.
+// Two-column codepoints (East Asian Width W/F), abridged to the blocks that
+// actually show up in answers.
 function isWide(cp: number): boolean {
   return (
     cp >= 0x1100 &&
@@ -36,7 +31,6 @@ function isWide(cp: number): boolean {
   );
 }
 
-// True for zero-width codepoints: combining marks and joiners.
 function isZeroWidth(cp: number): boolean {
   return (
     cp === 0x200d || // ZWJ
@@ -47,7 +41,6 @@ function isZeroWidth(cp: number): boolean {
   );
 }
 
-// Column width of a string, ignoring ANSI escapes.
 export function displayWidth(s: string): number {
   const plain = stripAnsi(s);
   let width = 0;

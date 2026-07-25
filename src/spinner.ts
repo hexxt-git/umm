@@ -1,7 +1,5 @@
-// A minimal elapsed-time spinner for the wait while the agent thinks. Agents
-// buffer their output until done, so without this the terminal looks frozen
-// for 30+ seconds. Writes to stderr only, so it never pollutes stdout (keeping
-// `umm x | pbcopy` clean), and no-ops when stderr is not a TTY.
+// Elapsed-time spinner shown while the agent buffers its output. Writes to
+// stderr only (keeps `umm x | pbcopy` clean) and no-ops when stderr isn't a TTY.
 const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 export interface Spinner {

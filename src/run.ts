@@ -14,7 +14,7 @@ export function buildPrompt(query: string, config: Config): string {
 }
 
 // Spawns the agent, delivers the prompt per its `input` mode, resolves stdout.
-// No fallback by design: on failure, reject with a descriptive error.
+// No fallback by design: on failure, reject.
 export function runAgent(
   agent: Agent,
   prompt: string,

@@ -1,6 +1,5 @@
-// Config persistence. JSON (not TOML) because neither Node nor Bun parses TOML
-// without a dependency, and we are keeping this dependency-free. Lives at
-// $XDG_CONFIG_HOME/umm/config.json, falling back to ~/.config/umm/config.json.
+// Config persistence at $XDG_CONFIG_HOME/umm/config.json (falls back to
+// ~/.config/umm/config.json). JSON to stay dependency-free.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -12,8 +11,7 @@ export interface Config {
   agent: string;
   length: Length;
   sources: Sources;
-  // Empty/absent ⇒ let the agent pick its default. Only ever a name the agent
-  // itself reported (see agents/discover.ts), so it stays valid.
+  // Absent ⇒ let the agent pick its default.
   model?: string;
 }
 
@@ -42,7 +40,7 @@ export function loadConfig(): Config {
     const raw = JSON.parse(readFileSync(configPath(), "utf8"));
     return { ...DEFAULTS, ...raw };
   } catch {
-    // corrupt config should not brick the tool; fall back to defaults
+    // corrupt config should not brick the tool
     return { ...DEFAULTS };
   }
 }

@@ -1,6 +1,5 @@
-- publish on npm and on brew
-- setup changesets and lock main branch
 - output streaming
 - model and effort picker
 - more agents integration
 - prompt optimization
+- message hisory and continue

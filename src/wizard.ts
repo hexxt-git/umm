@@ -1,5 +1,4 @@
-// Interactive config wizard. Dependency-free raw-mode select, rendered to
-// stderr so it never interferes with piped stdout.
+// Interactive config wizard: dependency-free raw-mode select, drawn to stderr.
 import { emitKeypressEvents } from "node:readline";
 import { AGENTS } from "./agents/index.js";
 import { listAgents } from "./agents/registry.js";

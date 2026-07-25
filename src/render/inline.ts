@@ -1,10 +1,7 @@
-// Inline markdown -> styled runs -> width-aware wrapped lines.
-//
-// A "run" is a chunk of text with a style set. Parsing to runs first, then
-// wrapping over runs, means: (a) width is measured on visible text only, and
-// (b) styles never bleed past a line break, because each word re-emits its own
-// escapes. Supported spans: `code`, **bold**, *italic*, ~~strike~~, [t](url).
-// No HTML — raw tags are passed through as literal text.
+// Inline markdown -> styled runs -> width-aware wrapped lines. Parsing to runs
+// (text + style set) before wrapping keeps width measured on visible text only
+// and stops styles bleeding past a line break. Supported spans: `code`,
+// **bold**, *italic*, ~~strike~~, [t](url). No HTML.
 import { style, hyperlink, sgr, theme } from "./ansi.js";
 import { displayWidth } from "./width.js";
 
@@ -16,12 +13,10 @@ interface Run {
   href?: string;
 }
 
-// Finds the matching closing delimiter for `delim` starting at `from`.
 function findClose(text: string, delim: string, from: number): number {
   return text.indexOf(delim, from);
 }
 
-// Parses inline text into runs, carrying an inherited style set for recursion.
 function parse(text: string, inherited: Set<StyleName>): Run[] {
   const runs: Run[] = [];
   let buf = "";
@@ -37,7 +32,7 @@ function parse(text: string, inherited: Set<StyleName>): Run[] {
   while (i < text.length) {
     const c = text[i];
 
-    // backslash escape: next char is literal
+    // backslash escape
     if (c === "\\" && i + 1 < text.length) {
       buf += text[i + 1];
       i += 2;
@@ -117,7 +112,6 @@ function parse(text: string, inherited: Set<StyleName>): Run[] {
   return runs;
 }
 
-// Serializes a single run to a styled terminal string.
 function renderRun(run: Run): string {
   let out = run.text;
   const styles: Parameters<typeof style>[1][] = [];
@@ -132,12 +126,11 @@ function renderRun(run: Run): string {
 }
 
 export interface Word {
-  runs: Run[]; // consecutive runs forming one whitespace-delimited word
+  runs: Run[];
   width: number;
 }
 
-// Splits runs into whitespace-delimited words, preserving each fragment's
-// style. Width is display columns of the visible text.
+// Splits runs into whitespace-delimited words, preserving each fragment's style.
 function toWords(runs: Run[]): Word[] {
   const words: Word[] = [];
   let cur: Run[] = [];

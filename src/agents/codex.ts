@@ -1,6 +1,5 @@
-// Codex has no "list models" command, but its app-server exposes a `model/list`
-// JSON-RPC method (over newline-delimited stdio). Spawn it, initialize, ask
-// once, tear it down. Resolves [] on any failure so callers use codex's default.
+// Codex exposes models via a `model/list` JSON-RPC method on its app-server
+// (newline-delimited stdio). Resolves [] on any failure.
 import { spawn } from "node:child_process";
 
 export function listCodexModels(): Promise<string[]> {

@@ -1,9 +1,4 @@
 #!/usr/bin/env node
-// umm — a faster way to ask.
-//
-// Arg parsing rule: only argv[0] may be a known flag. Everything else is the
-// query, verbatim. This is what lets `umm what does --force do` work: --force
-// is not in position 0, so it stays part of the question.
 import { AGENTS } from "./agents/index.js";
 import { loadConfig, configExists } from "./config.js";
 import { buildPrompt, runAgent } from "./run.js";
@@ -11,9 +6,7 @@ import { render } from "./render/markdown.js";
 import { startSpinner } from "./spinner.js";
 import { runWizard } from "./wizard.js";
 
-// Color/formatting only when writing to a real terminal. Piped or redirected
-// output (umm x | pbcopy, umm x > notes.md) gets clean raw markdown, and
-// NO_COLOR / TERM=dumb are honored. This is also what --raw forces.
+// Color only on a real TTY; piped/redirected output stays clean markdown.
 function useColor(): boolean {
   return (
     !!process.stdout.isTTY &&
@@ -53,7 +46,6 @@ async function answer(query: string, raw: boolean): Promise<void> {
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
 
-  // No args: first run -> wizard; otherwise a short usage line.
   if (argv.length === 0) {
     if (!configExists()) {
       await runWizard();
@@ -63,13 +55,11 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Only position 0 is eligible to be a flag.
+  // Only argv[0] is eligible to be a flag, so `umm what does --force do` works.
   const head = argv[0];
   let raw = false;
   let rest = argv;
 
-  // `--config`, or the bare word `config` when it's the only argument, opens
-  // the wizard. `umm config <more words>` stays a real question about config.
   if (head === "--config" || (head === "config" && argv.length === 1)) {
     await runWizard();
     process.exit(0);
