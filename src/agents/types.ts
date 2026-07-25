@@ -8,6 +8,9 @@ export interface Agent {
   modelFlag?: string;
   // Absent ⇒ agent uses its own default. May be async and may throw.
   listModels?: () => string[] | Promise<string[]>;
+  // Args always injected to force low reasoning effort — umm is for quick
+  // lookups, not deep research. Absent ⇒ agent has no effort flag.
+  effortArgs?: string[];
 }
 
 export interface AgentInfo extends Agent {

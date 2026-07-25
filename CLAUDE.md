@@ -112,6 +112,10 @@ protected and squash-only, which the flow is built around.
   `input` mode (`"stdin"` or `"arg"`) and a web-access flag that **matters** — a
   wrong flag ⇒ silent stale answers (e.g. cursor needs `--auto-review` to run its
   web-search tool). Verified: claude, antigravity, opencode, codex, cursor.
+  **Reasoning effort is always forced low** (`effortArgs` per agent: `--effort low`
+  for claude/agy, `-c model_reasoning_effort=low` for codex) — umm is for quick
+  lookups, not deep research, so effort is fixed, not user-configurable. Don't add
+  an effort picker; new agents with an effort flag set `effortArgs` to low.
 - `run.ts` — builds `SKILL + CLI_ADDENDUM + config + query`, spawns the agent,
   returns stdout. **No fallback by design**: if the agent fails, surface and exit.
 - `config.ts` — JSON at `$XDG_CONFIG_HOME/umm/config.json` (`~/.config/umm/…`).

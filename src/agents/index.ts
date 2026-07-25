@@ -14,6 +14,7 @@ export const AGENTS: Record<string, Agent> = {
     input: "stdin",
     modelFlag: "--model",
     listModels: listClaudeModels,
+    effortArgs: ["--effort", "low"],
   },
   antigravity: {
     name: "Antigravity (agy)",
@@ -21,7 +22,8 @@ export const AGENTS: Record<string, Agent> = {
     args: ["-p"],
     input: "arg",
     modelFlag: "--model",
-    listModels: () => runModels("agy", ["models"]), // effort is baked into names
+    listModels: () => runModels("agy", ["models"]),
+    effortArgs: ["--effort", "low"],
   },
   opencode: {
     name: "opencode",
@@ -48,5 +50,6 @@ export const AGENTS: Record<string, Agent> = {
     input: "stdin",
     modelFlag: "-m",
     listModels: listCodexModels,
+    effortArgs: ["-c", "model_reasoning_effort=low"],
   },
 };

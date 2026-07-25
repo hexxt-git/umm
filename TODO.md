@@ -1,5 +1,4 @@
 - output streaming
-- model and effort picker
 - more agents integration
 - prompt optimization
 - message hisory and continue
