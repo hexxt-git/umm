@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import { AGENTS } from "./agents/index.js";
 import { loadConfig, configExists } from "./config.js";
-import { buildPrompt, runAgent } from "./run.js";
+import { buildPrompt, runAgent, type AgentResult } from "./run.js";
+import { appendEntry, newId } from "./history.js";
+import { runContinue } from "./continue.js";
 import { render } from "./render/markdown.js";
 import { startSpinner } from "./spinner.js";
 import { runWizard } from "./wizard.js";
@@ -29,9 +31,9 @@ async function answer(query: string, raw: boolean): Promise<void> {
 
   const prompt = buildPrompt(query, config);
   const spinner = startSpinner();
-  let output: string;
+  let result: AgentResult;
   try {
-    output = await runAgent(agent, prompt, config.model);
+    result = await runAgent(agent, prompt, config.model);
   } catch (err) {
     spinner.stop();
     fail((err as Error).message);
@@ -39,8 +41,22 @@ async function answer(query: string, raw: boolean): Promise<void> {
     spinner.stop();
   }
 
+  // Successful answers only — `umm continue` has nothing to reopen otherwise.
+  appendEntry({
+    id: newId(),
+    ts: new Date().toISOString(),
+    agent: config.agent,
+    ...(config.model ? { model: config.model } : {}),
+    ...(result.sessionId ? { sessionId: result.sessionId } : {}),
+    cwd: process.cwd(),
+    length: config.length,
+    sources: config.sources,
+    question: query,
+    answer: result.text,
+  });
+
   const color = !raw && useColor();
-  process.stdout.write(render(output, { color }));
+  process.stdout.write(render(result.text, { color }));
 }
 
 async function main(): Promise<void> {
@@ -59,6 +75,15 @@ async function main(): Promise<void> {
   const head = argv[0];
   let raw = false;
   let rest = argv;
+
+  // Only bare `continue` (optionally with --pick) is the command, so real
+  // questions like `umm continue vs break` still pass through.
+  if (
+    head === "continue" &&
+    (argv.length === 1 || (argv.length === 2 && argv[1] === "--pick"))
+  ) {
+    process.exit(await runContinue(argv[1] === "--pick"));
+  }
 
   if (head === "--config" || (head === "config" && argv.length === 1)) {
     await runWizard();

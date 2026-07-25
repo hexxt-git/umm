@@ -51,3 +51,24 @@ export function displayWidth(s: string): number {
   }
   return width;
 }
+
+// Cuts to `max` columns, ellipsis included. Assumes plain text.
+export function truncate(s: string, max: number): string {
+  if (max <= 0) return "";
+  if (displayWidth(s) <= max) return s;
+  let out = "";
+  let width = 0;
+  for (const ch of s) {
+    const cp = ch.codePointAt(0)!;
+    const w = isZeroWidth(cp) ? 0 : isWide(cp) ? 2 : 1;
+    if (width + w > max - 1) break;
+    out += ch;
+    width += w;
+  }
+  return out + "…";
+}
+
+// Right-pads to `width` columns so adjacent columns line up.
+export function padTo(s: string, width: number): string {
+  return s + " ".repeat(Math.max(0, width - displayWidth(s)));
+}

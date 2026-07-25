@@ -1,4 +1,4 @@
 - output streaming
 - more agents integration
 - prompt optimization
-- message hisory and continue
+- agy session resume (reseeds today: `-p` exposes no conversation id)
