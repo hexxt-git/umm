@@ -39,9 +39,12 @@ function select<T>(
     process.stdin.resume();
 
     const rows = process.stdout.rows || 24;
-    const visible = Math.max(
-      3,
-      Math.min(choices.length, MAX_PICKER_ROWS, rows - 4),
+    // Never exceed choices.length — the floor of 3 is only there to keep a
+    // usable scroll window on a short terminal, not to pad the list out.
+    const visible = Math.min(
+      choices.length,
+      MAX_PICKER_ROWS,
+      Math.max(3, rows - 4),
     );
     let start = 0;
     let prevLines = 0;
@@ -105,7 +108,14 @@ function select<T>(
     };
 
     process.stdin.on("keypress", onKey);
-    draw(true);
+    // The listener and raw mode are already live, so a failed first draw must
+    // restore the terminal instead of leaving it raw with a dangling listener.
+    try {
+      draw(true);
+    } catch (err) {
+      cleanup();
+      reject(err as Error);
+    }
   });
 }
 
@@ -189,8 +199,15 @@ export async function runWizard(): Promise<void> {
     );
 
     config = { agent, length, sources, ...(model ? { model } : {}) };
-  } catch {
-    out.write(style("cancelled — nothing saved.\n", sgr.dim));
+  } catch (err) {
+    // Only Ctrl-C/Esc is a cancellation; anything else is a real failure and
+    // must say so rather than hide behind "cancelled".
+    const message = (err as Error).message;
+    out.write(
+      message === "cancelled"
+        ? style("cancelled — nothing saved.\n", sgr.dim)
+        : `umm: setup failed — ${message}\n`,
+    );
     process.exit(1);
   }
 
