@@ -59,10 +59,21 @@ umm <anything you want to know>
 
 umm --config     # pick your agent, answer length, sources
 umm --raw        # skip the pretty formatting (also automatic when piped)
+
+umm continue         # reopen the last answer in a real agent session
+umm continue --pick  # ...or choose an older one from your history
 ```
 
 Need punctuation the shell would eat (`?`, `'`, `|`)? Quote it:
 `umm "what's the deal with sourdough?"`
+
+When an answer needs a follow-up, `umm continue` hands you the full agent —
+resuming the very session that answered where the agent supports it, and
+replaying the exchange into a fresh one where it doesn't. It reopens in the
+directory you asked from, and drops umm's skill entirely: that session is the
+plain agent, free to edit files and think as long as it likes.
+
+Asks are logged to `~/.local/state/umm/history.jsonl` (newest 500).
 
 ## How it works
 

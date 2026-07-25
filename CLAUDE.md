@@ -105,7 +105,9 @@ protected and squash-only, which the flow is built around.
 
 - `index.ts` — entry + arg parsing. **Rule: only `argv[0]` may be a flag**, so
   `umm what does --force do` passes through verbatim. Flags: `--config` /
-  `config`, `--raw`. No `--agent` flag (agent comes only from config).
+  `config`, `--raw`, `continue` (+ `--pick`). No `--agent` flag (agent comes only
+  from config). Bare commands are guarded on arg count, so `umm continue vs
+break` stays a question — keep that guard when adding one.
 - `agents/` — the adapter layer. `index.ts` is the table **as data**; siblings
   hold the behavior (`registry.ts` = install detection, `discover.ts` +
   per-agent files = model discovery, `types.ts` = shapes). Each agent has an
@@ -116,11 +118,37 @@ protected and squash-only, which the flow is built around.
   for claude/agy, `-c model_reasoning_effort=low` for codex) — umm is for quick
   lookups, not deep research, so effort is fixed, not user-configurable. Don't add
   an effort picker; new agents with an effort flag set `effortArgs` to low.
+  Two optional fields serve `continue`: `resume` (print-mode `printArgs` that
+  make the agent emit a session id, a `parse` for that envelope, and the args to
+  reopen it) and `seedArgs` (interactive launch with an initial prompt).
+  **`resume.printArgs` changes what `run.ts` parses as the answer** — only wire
+  it for an agent whose envelope you have actually seen. Verified: claude and
+  cursor (`--output-format json` → `.result`/`.session_id`), codex (`--json` →
+  `thread.started.thread_id` + last `agent_message`), opencode (`--format json`
+  → `sessionID` on every event, answer as whole `text` parts, not deltas). agy
+  exposes no id in print mode, so it alone takes the reseed path.
 - `run.ts` — builds `SKILL + CLI_ADDENDUM + config + query`, spawns the agent,
-  returns stdout. **No fallback by design**: if the agent fails, surface and exit.
+  returns `{ text, sessionId? }` (parsed per `agent.resume`, raw stdout without
+  it). **No fallback by design**: if the agent fails, surface and exit.
+  `handOff` is the opposite mode — `stdio: "inherit"`, so the agent owns the
+  terminal; effort is deliberately _not_ forced there.
+- `history.ts` — JSONL at `$XDG_STATE_HOME/umm/history.jsonl`
+  (`~/.local/state/umm/…`). **State, not config**: the XDG spec names that
+  directory for action history, and it must not ride along in synced dotfiles.
+  Successful answers only, newest 500, rewritten via temp + rename so an
+  interrupted write can't truncate it; the reader skips unparseable lines.
+- `continue.ts` — `umm continue [--pick]`. Reopens a past answer as a real
+  interactive session: native resume when the entry has a session id, else
+  reseed with the transcript replayed as the first prompt (and a failed resume
+  falls back to reseed). Lands back in the entry's `cwd`. **Deliberately drops
+  `SKILL`/`CLI_ADDENDUM`** — this is the plain agent, which is exactly what
+  `cli.md` tells users to go run themselves.
+- `select.ts` — the shared raw-mode picker (wizard + history). Rows must be one
+  screen line each; the redraw rewinds by line count, so a soft-wrapped label
+  corrupts it. Truncate with `render/width.ts` before calling.
 - `config.ts` — JSON at `$XDG_CONFIG_HOME/umm/config.json` (`~/.config/umm/…`).
   Injected into the prompt as a `## Configuration` block (length, sources).
-- `wizard.ts` — dependency-free raw-mode TTY select for `umm --config` / first run.
+- `wizard.ts` — `umm --config` / first run, built on `select.ts`.
 - `spinner.ts` — stderr-only elapsed spinner (agents buffer until done).
 - `render/` — hand-rolled markdown → terminal, **no deps**, full markdown minus
   HTML. `width.ts` is display-width-aware (counts columns, ignores ANSI, handles

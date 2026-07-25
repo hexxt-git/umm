@@ -1,3 +1,15 @@
+// What an agent must expose for `umm continue` to reopen its own session
+// rather than reseeding a fresh one. Absent ⇒ the agent takes the reseed path.
+export interface Resume {
+  // Extra print-mode args that make the agent emit a machine-readable envelope
+  // carrying its session id alongside the answer.
+  printArgs: string[];
+  // Pulls the answer (and id, when present) out of that envelope.
+  parse: (stdout: string) => { text: string; sessionId?: string };
+  // Args that reopen that session interactively. Replaces `args` entirely.
+  args: (sessionId: string) => string[];
+}
+
 export interface Agent {
   name: string;
   bin: string;
@@ -15,6 +27,11 @@ export interface Agent {
   // last entry in `args` consumes the next argument as the prompt (agy's -p),
   // which would otherwise swallow a flag and drop the real question.
   flagsFirst?: boolean;
+  // Session capture + native resume. Absent ⇒ reseed only.
+  resume?: Resume;
+  // Args that open an interactive session seeded with an initial prompt,
+  // replacing `args`. Absent ⇒ the prompt is passed positionally.
+  seedArgs?: (prompt: string) => string[];
 }
 
 export interface AgentInfo extends Agent {
