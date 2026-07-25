@@ -1,21 +1,15 @@
 #!/usr/bin/env node
-// Embeds the skill markdown into src/skill.generated.ts so the CLI has no
-// runtime file dependency and compiles into a single binary. SKILL.md at the
-// repo root is the single source of truth (root placement also makes the repo
-// installable directly via `npx skills add hexxt-git/umm`); its yaml frontmatter
-// is stripped here since the CLI feeds the body as a prompt.
+// Embeds SKILL.md + cli.md into src/skill.generated.ts so the CLI has no
+// runtime file dependency. Frontmatter is stripped; the body is used as a prompt.
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-// SKILL.md is the portable brain; cli.md is the CLI-only addendum (read-only
-// context, no edit permissions). Both are embedded so the binary is standalone.
 const skillSrc = readFileSync(join(root, "SKILL.md"), "utf8");
 const cliSrc = readFileSync(join(root, "cli.md"), "utf8");
 
-// strip the leading yaml frontmatter block if present
 const skill = skillSrc.replace(/^---\n[\s\S]*?\n---\n/, "").trimStart();
 const cli = cliSrc.replace(/^---\n[\s\S]*?\n---\n/, "").trimStart();
 

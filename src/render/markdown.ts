@@ -1,7 +1,5 @@
-// Block-level markdown -> terminal. Line-based parser covering the block kinds
-// the skill can emit: headings, paragraphs, bullet/ordered lists (nested),
-// blockquotes, fenced code, tables, and horizontal rules. No HTML. Inline
-// styling and width-aware wrapping are delegated to inline.ts / width.ts.
+// Block-level markdown -> terminal. Line-based parser; inline styling and
+// width-aware wrapping are delegated to inline.ts / width.ts. No HTML.
 import { style, sgr, theme, setColorEnabled } from "./ansi.js";
 import { renderInline, renderInlineFlat } from "./inline.js";
 import { displayWidth, stripAnsi } from "./width.js";
@@ -23,7 +21,6 @@ const isTableSep = (l: string) =>
   /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && l.includes("-");
 const isTableRow = (l: string) => l.trim().startsWith("|") || l.includes(" | ");
 
-// pad a pre-rendered (possibly styled) cell to a target column width
 function padTo(s: string, w: number): string {
   const gap = w - displayWidth(s);
   return gap > 0 ? s + " ".repeat(gap) : s;
@@ -60,8 +57,7 @@ function renderCode(lines: string[]): string[] {
   return out;
 }
 
-// Renders a (possibly nested) list. `items` are raw source lines already known
-// to belong to the list; nesting is by leading indentation.
+// Nesting is by leading indentation.
 function renderList(items: string[], width: number): string[] {
   const out: string[] = [];
   for (const raw of items) {
@@ -85,7 +81,6 @@ function renderList(items: string[], width: number): string[] {
 }
 
 function renderTable(rows: string[], width: number): string[] {
-  // split "| a | b |" into cells, trimming outer pipes
   const parse = (line: string) =>
     line
       .trim()
@@ -94,7 +89,7 @@ function renderTable(rows: string[], width: number): string[] {
       .map((c) => c.trim());
 
   const header = parse(rows[0]);
-  const body = rows.slice(2).map(parse); // rows[1] is the separator
+  const body = rows.slice(2).map(parse); // rows[1] is the separator row
   const cols = header.length;
 
   const rendered = [header, ...body].map((r) =>
@@ -132,7 +127,7 @@ function renderTable(rows: string[], width: number): string[] {
   ];
 }
 
-// Main entry: markdown source -> styled terminal string (or raw passthrough).
+// markdown source -> styled terminal string (or raw passthrough).
 export function render(
   src: string,
   opts: { color: boolean } = { color: true },
@@ -160,9 +155,9 @@ export function render(
 
     if (isFence(line)) {
       const buf: string[] = [];
-      i++; // skip opening fence
+      i++;
       while (i < lines.length && !isFence(lines[i])) buf.push(lines[i++]);
-      i++; // skip closing fence
+      i++;
       spacer();
       out.push(...renderCode(buf));
       spacer();
@@ -182,7 +177,6 @@ export function render(
       continue;
     }
 
-    // table: a row followed by a separator row
     if (isTableRow(line) && i + 1 < lines.length && isTableSep(lines[i + 1])) {
       const buf: string[] = [];
       while (i < lines.length && isTableRow(lines[i]) && !isBlank(lines[i]))
@@ -213,7 +207,7 @@ export function render(
       continue;
     }
 
-    // paragraph: gather until a blank line or a block-starting line
+    // paragraph: gather until a blank or block-starting line
     const buf: string[] = [];
     while (
       i < lines.length &&
@@ -229,7 +223,6 @@ export function render(
     out.push(...renderParagraph(buf, width));
   }
 
-  // collapse leading/trailing blank lines
   while (out.length && out[0] === "") out.shift();
   while (out.length && out[out.length - 1] === "") out.pop();
 

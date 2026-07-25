@@ -106,10 +106,16 @@ protected and squash-only, which the flow is built around.
 - `index.ts` — entry + arg parsing. **Rule: only `argv[0]` may be a flag**, so
   `umm what does --force do` passes through verbatim. Flags: `--config` /
   `config`, `--raw`. No `--agent` flag (agent comes only from config).
-- `agents.ts` — adapter table **as data**. Each agent has an `input` mode:
-  `"stdin"` (claude, cursor, codex) or `"arg"` (antigravity/`agy`, opencode).
-  Verified: claude, antigravity, opencode. **Unverified guesses: cursor, codex**
-  — and each agent's web-access flag matters (wrong flag ⇒ silent stale answers).
+- `agents/` — the adapter layer. `index.ts` is the table **as data**; siblings
+  hold the behavior (`registry.ts` = install detection, `discover.ts` +
+  per-agent files = model discovery, `types.ts` = shapes). Each agent has an
+  `input` mode (`"stdin"` or `"arg"`) and a web-access flag that **matters** — a
+  wrong flag ⇒ silent stale answers (e.g. cursor needs `--auto-review` to run its
+  web-search tool). Verified: claude, antigravity, opencode, codex, cursor.
+  **Reasoning effort is always forced low** (`effortArgs` per agent: `--effort low`
+  for claude/agy, `-c model_reasoning_effort=low` for codex) — umm is for quick
+  lookups, not deep research, so effort is fixed, not user-configurable. Don't add
+  an effort picker; new agents with an effort flag set `effortArgs` to low.
 - `run.ts` — builds `SKILL + CLI_ADDENDUM + config + query`, spawns the agent,
   returns stdout. **No fallback by design**: if the agent fails, surface and exit.
 - `config.ts` — JSON at `$XDG_CONFIG_HOME/umm/config.json` (`~/.config/umm/…`).
@@ -126,3 +132,5 @@ protected and squash-only, which the flow is built around.
 - Pre-commit (Husky) runs `npm run precommit` → lint-staged → Prettier. Tooling
   is npm-based; only `build:binaries` uses Bun.
 - Keep the agent adapter table honest: mark flags you haven't actually tested.
+- Comment sparingly. Explain a non-obvious _why_ in one terse line; never annotate
+  what the code already says. Prefer no comment over a redundant one.

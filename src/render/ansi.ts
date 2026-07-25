@@ -1,7 +1,5 @@
-// ANSI styling — the "chalk rewrite", kept deliberately small. A single `style`
-// helper wraps text in SGR codes; a `theme` names the colors so the whole look
-// is tunable in one place and can go monochrome when color is disabled.
-
+// Minimal ANSI styling: a `style` helper wraps text in SGR codes, a `theme`
+// names the colors so the look is tunable in one place.
 let enabled = true;
 export function setColorEnabled(on: boolean): void {
   enabled = on;
@@ -19,7 +17,7 @@ function code(open: number, close: number): Sgr {
   return { open: `${ESC}${open}m`, close: `${ESC}${close}m` };
 }
 
-// Truecolor foreground; terminals without it degrade gracefully to nearest.
+// Truecolor foreground; terminals without it degrade to nearest.
 function fg(r: number, g: number, b: number): Sgr {
   return { open: `${ESC}38;2;${r};${g};${b}m`, close: `${ESC}39m` };
 }
@@ -33,8 +31,6 @@ export const sgr = {
   reset: RESET,
 };
 
-// A restrained, theme-agnostic palette. These are the only colors the renderer
-// reaches for, so retheming is a one-object edit.
 export const theme = {
   heading: fg(137, 180, 250), // soft blue
   accent: fg(148, 226, 213), // teal — bold spans
@@ -47,12 +43,10 @@ export const theme = {
   tableBorder: sgr.dim,
 };
 
-// Applies one or more SGR styles to a string. When color is disabled, bold and
-// underline still pass through (they carry meaning without color); pure-color
-// styles collapse to plain text.
+// When color is disabled, bold/underline still pass through (structural
+// emphasis); pure-color styles collapse to plain text.
 export function style(text: string, ...styles: Sgr[]): string {
   if (!enabled) {
-    // keep structural emphasis even without color
     let out = text;
     for (const s of styles) {
       if (s === sgr.bold) out = `${sgr.bold.open}${out}${sgr.bold.close}`;
@@ -70,8 +64,7 @@ export function style(text: string, ...styles: Sgr[]): string {
   return `${open}${text}${close}`;
 }
 
-// Wraps text in an OSC 8 hyperlink so supporting terminals make it clickable
-// without printing the raw URL. Falls back to plain styled text elsewhere.
+// OSC 8 hyperlink: clickable in supporting terminals, plain text elsewhere.
 export function hyperlink(text: string, url: string): string {
   if (!enabled) return text;
   return `\x1b]8;;${url}\x07${text}\x1b]8;;\x07`;

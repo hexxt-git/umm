@@ -1,9 +1,8 @@
-// Interactive config wizard. Dependency-free: raw-mode stdin, arrow-key select,
-// rendered to stderr so it never interferes with piped stdout. Covers the three
-// settings the skill and CLI read — agent, answer length, sources — and shows
-// which agents are actually installed.
+// Interactive config wizard: dependency-free raw-mode select, drawn to stderr.
 import { emitKeypressEvents } from "node:readline";
-import { AGENTS, listAgents } from "./agents.js";
+import { AGENTS } from "./agents/index.js";
+import { listAgents } from "./agents/registry.js";
+import { discoverModels } from "./agents/discover.js";
 import {
   loadConfig,
   saveConfig,
@@ -21,9 +20,10 @@ interface Choice<T> {
   disabled?: boolean;
 }
 
-// Renders a single-select list and resolves with the chosen value. Arrow keys
-// or j/k move, Enter confirms, Ctrl-C / Esc aborts. Disabled rows are skippable
-// only in that they can't be selected.
+// Cap visible options; long lists (cursor has hundreds of models) scroll.
+const MAX_PICKER_ROWS = 12;
+
+// Single-select list: arrows/jk move, Enter confirms, Ctrl-C/Esc aborts.
 function select<T>(
   title: string,
   choices: Choice<T>[],
@@ -38,18 +38,38 @@ function select<T>(
     if (process.stdin.isTTY) process.stdin.setRawMode(true);
     process.stdin.resume();
 
+    const rows = process.stdout.rows || 24;
+    const visible = Math.max(
+      3,
+      Math.min(choices.length, MAX_PICKER_ROWS, rows - 4),
+    );
+    let start = 0;
+    let prevLines = 0;
+
     const draw = (first: boolean) => {
-      if (!first) out.write(`\x1b[${choices.length + 1}A`);
+      if (idx < start) start = idx;
+      else if (idx >= start + visible) start = idx - visible + 1;
+      start = Math.max(0, Math.min(start, choices.length - visible));
+
+      if (!first) out.write(`\x1b[${prevLines}A`);
       out.write(`\x1b[J`);
-      out.write(style(title, sgr.bold) + "\n");
-      choices.forEach((c, i) => {
+
+      const lines: string[] = [style(title, sgr.bold)];
+      if (start > 0) lines.push(style(`  ↑ ${start} more`, sgr.dim));
+      for (let i = start; i < start + visible; i++) {
+        const c = choices[i];
         const cursor = i === idx ? style("❯ ", theme.accent) : "  ";
         let label = c.label;
         if (c.disabled) label = style(label, sgr.dim);
         else if (i === idx) label = style(label, theme.accent);
         const hint = c.hint ? " " + style(c.hint, sgr.dim) : "";
-        out.write(`${cursor}${label}${hint}\n`);
-      });
+        lines.push(`${cursor}${label}${hint}`);
+      }
+      const below = choices.length - (start + visible);
+      if (below > 0) lines.push(style(`  ↓ ${below} more`, sgr.dim));
+
+      out.write(lines.join("\n") + "\n");
+      prevLines = lines.length;
     };
 
     const cleanup = () => {
@@ -127,6 +147,28 @@ export async function runWizard(): Promise<void> {
       agentInitial,
     );
 
+    // Model list comes from the agent itself; skipped when it exposes none.
+    out.write(style("  detecting models…", sgr.dim));
+    const models = await discoverModels(AGENTS[agent]);
+    out.write("\r\x1b[K");
+    let model: string | undefined;
+    if (models.length) {
+      const modelChoices: Choice<string>[] = [
+        { value: "", label: "Default", hint: "agent's own default" },
+        ...models.map((m) => ({ value: m, label: m })),
+      ];
+      const modelInitial = Math.max(
+        0,
+        modelChoices.findIndex((c) => c.value === (current.model ?? "")),
+      );
+      model =
+        (await select(
+          "Which model should it use?",
+          modelChoices,
+          modelInitial,
+        )) || undefined;
+    }
+
     const length = await select<Length>(
       "How long should answers be?",
       [
@@ -146,7 +188,7 @@ export async function runWizard(): Promise<void> {
       ["on", "off"].indexOf(current.sources),
     );
 
-    config = { agent, length, sources };
+    config = { agent, length, sources, ...(model ? { model } : {}) };
   } catch {
     out.write(style("cancelled — nothing saved.\n", sgr.dim));
     process.exit(1);
@@ -157,7 +199,8 @@ export async function runWizard(): Promise<void> {
     "\n" +
       style("saved", theme.accent) +
       style(` → ${configPath()}\n`, sgr.dim) +
-      style(`  agent: ${AGENTS[config.agent].name}\n`, sgr.dim) +
+      style(`  agent: ${AGENTS[config.agent].name}`, sgr.dim) +
+      style(config.model ? `   model: ${config.model}\n` : "\n", sgr.dim) +
       style(
         `  length: ${config.length}   sources: ${config.sources}\n`,
         sgr.dim,

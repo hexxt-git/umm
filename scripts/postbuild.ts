@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// Post-emit fixups for the dist-npm build: guarantee the CLI entry has a node
-// shebang and is executable (so `npx umm` / the bin symlink work regardless of
-// whether tsc preserved the shebang), and copy README.md alongside the output.
+// Post-emit fixups for dist-npm: ensure the CLI entry has a node shebang and is
+// executable, and copy README.md alongside the output.
 import { readFileSync, writeFileSync, chmodSync, copyFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
