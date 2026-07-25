@@ -1,5 +1,12 @@
 # @hexxt/umm
 
+## 0.2.2
+
+### Patch Changes
+
+- c6d4843: Fix `umm --config` crashing at the final step and reporting "cancelled — nothing
+  saved", which made the setup wizard impossible to complete.
+
 ## 0.2.1
 
 ### Patch Changes
