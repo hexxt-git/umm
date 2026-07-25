@@ -23,7 +23,10 @@ export function runAgent(
   return new Promise((resolve, reject) => {
     const modelArgs = model && agent.modelFlag ? [agent.modelFlag, model] : [];
     const effortArgs = agent.effortArgs ?? [];
-    const baseArgs = [...agent.args, ...modelArgs, ...effortArgs];
+    const flags = [...modelArgs, ...effortArgs];
+    const baseArgs = agent.flagsFirst
+      ? [...flags, ...agent.args]
+      : [...agent.args, ...flags];
     const args = agent.input === "arg" ? [...baseArgs, prompt] : baseArgs;
     const child = spawn(agent.bin, args, {
       stdio: ["pipe", "pipe", "pipe"],
