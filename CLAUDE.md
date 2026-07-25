@@ -132,3 +132,5 @@ protected and squash-only, which the flow is built around.
 - Pre-commit (Husky) runs `npm run precommit` → lint-staged → Prettier. Tooling
   is npm-based; only `build:binaries` uses Bun.
 - Keep the agent adapter table honest: mark flags you haven't actually tested.
+- Comment sparingly. Explain a non-obvious _why_ in one terse line; never annotate
+  what the code already says. Prefer no comment over a redundant one.

@@ -20,6 +20,9 @@ interface Choice<T> {
   disabled?: boolean;
 }
 
+// Cap visible options; long lists (cursor has hundreds of models) scroll.
+const MAX_PICKER_ROWS = 12;
+
 // Single-select list: arrows/jk move, Enter confirms, Ctrl-C/Esc aborts.
 function select<T>(
   title: string,
@@ -35,18 +38,38 @@ function select<T>(
     if (process.stdin.isTTY) process.stdin.setRawMode(true);
     process.stdin.resume();
 
+    const rows = process.stdout.rows || 24;
+    const visible = Math.max(
+      3,
+      Math.min(choices.length, MAX_PICKER_ROWS, rows - 4),
+    );
+    let start = 0;
+    let prevLines = 0;
+
     const draw = (first: boolean) => {
-      if (!first) out.write(`\x1b[${choices.length + 1}A`);
+      if (idx < start) start = idx;
+      else if (idx >= start + visible) start = idx - visible + 1;
+      start = Math.max(0, Math.min(start, choices.length - visible));
+
+      if (!first) out.write(`\x1b[${prevLines}A`);
       out.write(`\x1b[J`);
-      out.write(style(title, sgr.bold) + "\n");
-      choices.forEach((c, i) => {
+
+      const lines: string[] = [style(title, sgr.bold)];
+      if (start > 0) lines.push(style(`  ↑ ${start} more`, sgr.dim));
+      for (let i = start; i < start + visible; i++) {
+        const c = choices[i];
         const cursor = i === idx ? style("❯ ", theme.accent) : "  ";
         let label = c.label;
         if (c.disabled) label = style(label, sgr.dim);
         else if (i === idx) label = style(label, theme.accent);
         const hint = c.hint ? " " + style(c.hint, sgr.dim) : "";
-        out.write(`${cursor}${label}${hint}\n`);
-      });
+        lines.push(`${cursor}${label}${hint}`);
+      }
+      const below = choices.length - (start + visible);
+      if (below > 0) lines.push(style(`  ↓ ${below} more`, sgr.dim));
+
+      out.write(lines.join("\n") + "\n");
+      prevLines = lines.length;
     };
 
     const cleanup = () => {
