@@ -34,22 +34,81 @@ function isWide(cp: number): boolean {
 function isZeroWidth(cp: number): boolean {
   return (
     cp === 0x200d || // ZWJ
-    cp === 0xfe0f || // variation selector-16 (emoji presentation)
+    cp === 0x20e3 || // combining enclosing keycap
+    (cp >= 0x1f3fb && cp <= 0x1f3ff) || // emoji skin-tone modifiers
     (cp >= 0x0300 && cp <= 0x036f) || // combining diacriticals
     (cp >= 0x200b && cp <= 0x200f) || // zero-width space/marks
-    (cp >= 0xfe00 && cp <= 0xfe0e) // variation selectors 1-15
+    (cp >= 0xfe00 && cp <= 0xfe0f) || // variation selectors
+    (cp >= 0xe0100 && cp <= 0xe01ef) || // supplementary variation selectors
+    /\p{Mark}/u.test(String.fromCodePoint(cp))
   );
+}
+
+function isRegionalIndicator(cp: number): boolean {
+  return cp >= 0x1f1e6 && cp <= 0x1f1ff;
+}
+
+export interface TerminalSegment {
+  text: string;
+  width: number;
+}
+
+// Groups the emoji sequences that terminals draw as one cell cluster. This is
+// deliberately smaller than a full Unicode grapheme-break implementation, but
+// covers ZWJ emoji, flags, skin tones, keycaps, and combining marks.
+export function terminalSegments(s: string): TerminalSegment[] {
+  const segments: string[] = [];
+  let current = "";
+  let regionalCount = 0;
+
+  const push = () => {
+    if (current) segments.push(current);
+    current = "";
+    regionalCount = 0;
+  };
+
+  for (const char of s) {
+    const cp = char.codePointAt(0)!;
+    const previousEndsWithJoiner = current.endsWith("\u200d");
+    if (!current) {
+      current = char;
+      regionalCount = isRegionalIndicator(cp) ? 1 : 0;
+    } else if (isZeroWidth(cp) || previousEndsWithJoiner) {
+      current += char;
+    } else if (isRegionalIndicator(cp) && regionalCount === 1) {
+      current += char;
+      regionalCount = 2;
+    } else {
+      push();
+      current = char;
+      regionalCount = isRegionalIndicator(cp) ? 1 : 0;
+    }
+  }
+  push();
+
+  return segments.map((text) => {
+    const points = [...text].map((char) => char.codePointAt(0)!);
+    const emojiCluster =
+      text.includes("\u200d") ||
+      text.includes("\ufe0f") ||
+      points.some((cp) => cp === 0x20e3 || (cp >= 0x1f3fb && cp <= 0x1f3ff)) ||
+      points.filter(isRegionalIndicator).length === 2;
+    const width = emojiCluster
+      ? 2
+      : points.reduce(
+          (sum, cp) => sum + (isZeroWidth(cp) ? 0 : isWide(cp) ? 2 : 1),
+          0,
+        );
+    return { text, width };
+  });
 }
 
 export function displayWidth(s: string): number {
   const plain = stripAnsi(s);
-  let width = 0;
-  for (const ch of plain) {
-    const cp = ch.codePointAt(0)!;
-    if (isZeroWidth(cp)) continue;
-    width += isWide(cp) ? 2 : 1;
-  }
-  return width;
+  return terminalSegments(plain).reduce(
+    (sum, segment) => sum + segment.width,
+    0,
+  );
 }
 
 // Cuts to `max` columns, ellipsis included. Assumes plain text.
@@ -58,12 +117,10 @@ export function truncate(s: string, max: number): string {
   if (displayWidth(s) <= max) return s;
   let out = "";
   let width = 0;
-  for (const ch of s) {
-    const cp = ch.codePointAt(0)!;
-    const w = isZeroWidth(cp) ? 0 : isWide(cp) ? 2 : 1;
-    if (width + w > max - 1) break;
-    out += ch;
-    width += w;
+  for (const segment of terminalSegments(s)) {
+    if (width + segment.width > max - 1) break;
+    out += segment.text;
+    width += segment.width;
   }
   return out + "…";
 }

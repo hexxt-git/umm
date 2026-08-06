@@ -3,7 +3,7 @@
 // and stops styles bleeding past a line break. Supported spans: `code`,
 // **bold**, *italic*, ~~strike~~, [t](url). No HTML.
 import { style, hyperlink, sgr, theme } from "./ansi.js";
-import { displayWidth } from "./width.js";
+import { displayWidth, terminalSegments } from "./width.js";
 
 type StyleName = "bold" | "italic" | "code" | "strike";
 
@@ -130,6 +130,39 @@ export interface Word {
   width: number;
 }
 
+function splitWord(word: Word, width: number): Word[] {
+  if (word.width <= width) return [word];
+  const pieces: Word[] = [];
+  let runs: Run[] = [];
+  let pieceWidth = 0;
+
+  const push = () => {
+    if (runs.length) pieces.push({ runs, width: pieceWidth });
+    runs = [];
+    pieceWidth = 0;
+  };
+
+  for (const run of word.runs) {
+    for (const segment of terminalSegments(run.text)) {
+      if (pieceWidth && pieceWidth + segment.width > width) push();
+      const previous = runs[runs.length - 1];
+      if (
+        previous &&
+        previous.href === run.href &&
+        previous.styles.size === run.styles.size &&
+        [...previous.styles].every((name) => run.styles.has(name))
+      ) {
+        previous.text += segment.text;
+      } else {
+        runs.push({ ...run, text: segment.text });
+      }
+      pieceWidth += segment.width;
+    }
+  }
+  push();
+  return pieces;
+}
+
 // Splits runs into whitespace-delimited words, preserving each fragment's style.
 function toWords(runs: Run[]): Word[] {
   const words: Word[] = [];
@@ -162,7 +195,10 @@ function toWords(runs: Run[]): Word[] {
 
 // Parses inline text and wraps it to `width` columns, returning styled lines.
 export function renderInline(text: string, width: number): string[] {
-  const words = toWords(parse(text, new Set()));
+  const safeWidth = Math.max(1, width);
+  const words = toWords(parse(text, new Set())).flatMap((word) =>
+    splitWord(word, safeWidth),
+  );
   if (words.length === 0) return [""];
 
   const lines: string[] = [];
@@ -171,7 +207,7 @@ export function renderInline(text: string, width: number): string[] {
 
   for (const word of words) {
     const add = (line.length ? 1 : 0) + word.width; // +1 for the joining space
-    if (line.length && lineWidth + add > width) {
+    if (line.length && lineWidth + add > safeWidth) {
       lines.push(serialize(line));
       line = [word];
       lineWidth = word.width;
