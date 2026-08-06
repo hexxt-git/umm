@@ -32,3 +32,21 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
+
+  runtime-node-14:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build scripts need modern Node, but the emitted package promises Node 14.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 14
+      - run: node tests/runtime-smoke.js
