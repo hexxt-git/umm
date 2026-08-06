@@ -35,6 +35,7 @@
     "build": "npm run build:skill && tsc -p tsconfig.build.json && node scripts/postbuild.ts",
     "build:binaries": "npm run build:skill && bash scripts/build-binaries.sh",
     "typecheck": "npm run build:skill && tsc --noEmit",
+    "test": "npm run build && node --test tests/*.test.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "precommit": "lint-staged",

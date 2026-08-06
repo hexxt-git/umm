@@ -30,3 +30,4 @@ jobs:
       # -> src/skill.generated.ts), so this catches a broken skill build too.
       - run: npm run format:check
       - run: npm run typecheck
+      - run: npm test
