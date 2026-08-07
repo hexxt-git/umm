@@ -2,13 +2,13 @@
 // width-aware wrapping are delegated to inline.ts / width.ts. No HTML.
 import { style, sgr, theme, setColorEnabled } from "./ansi.js";
 import { renderInline, renderInlineFlat } from "./inline.js";
-import { displayWidth, stripAnsi } from "./width.js";
+import { displayWidth, stripAnsi, truncate } from "./width.js";
 
 const MAX_WIDTH = 90;
 
-function termWidth(): number {
-  const cols = process.stdout.columns || 80;
-  return Math.min(cols, MAX_WIDTH);
+function termWidth(requested?: number): number {
+  const cols = requested ?? process.stdout.columns ?? 80;
+  return Math.max(1, Math.min(Math.floor(cols), MAX_WIDTH));
 }
 
 const isBlank = (l: string) => l.trim() === "";
@@ -26,19 +26,21 @@ function padTo(s: string, w: number): string {
   return gap > 0 ? s + " ".repeat(gap) : s;
 }
 
-function renderHeading(line: string): string[] {
+function renderHeading(line: string, width: number): string[] {
   const m = /^(#{1,6})\s+(.*)$/.exec(line)!;
   const level = m[1].length;
-  const text = renderInlineFlat(m[2]);
-  const styled = style(text, theme.heading, sgr.bold);
+  const rendered = renderInline(m[2], width);
+  const styled = rendered.map((text) => style(text, theme.heading, sgr.bold));
   if (level === 1) {
     const rule = style(
-      "─".repeat(displayWidth(stripAnsi(text))),
+      "─".repeat(
+        Math.max(...rendered.map((text) => displayWidth(stripAnsi(text)))),
+      ),
       theme.heading,
     );
-    return [styled, rule];
+    return [...styled, rule];
   }
-  return [styled];
+  return styled;
 }
 
 function renderParagraph(lines: string[], width: number): string[] {
@@ -47,8 +49,10 @@ function renderParagraph(lines: string[], width: number): string[] {
 
 function renderQuote(lines: string[], width: number): string[] {
   const inner = lines.map((l) => l.replace(/^\s*>\s?/, "")).join(" ");
-  const bar = style("│ ", theme.quote);
-  return renderInline(inner, width - 2).map((l) => bar + style(l, sgr.dim));
+  const bar = width > 2 ? style("│ ", theme.quote) : "";
+  return renderInline(inner, width - displayWidth(bar)).map(
+    (l) => bar + style(l, sgr.dim),
+  );
 }
 
 function renderCode(lines: string[]): string[] {
@@ -60,22 +64,87 @@ function renderCode(lines: string[]): string[] {
 // Nesting is by leading indentation.
 function renderList(items: string[], width: number): string[] {
   const out: string[] = [];
+  const parsed: { indent: number; marker: string; content: string }[] = [];
   for (const raw of items) {
-    const m = listMatch(raw)!;
-    const indent = m[1].length;
-    const marker = m[2];
-    const content = m[3];
+    const match = listMatch(raw);
+    if (match) {
+      parsed.push({
+        indent: match[1].length,
+        marker: match[2],
+        content: match[3],
+      });
+    } else if (parsed.length) {
+      parsed[parsed.length - 1].content += ` ${raw.trim()}`;
+    }
+  }
+  for (const { indent, marker, content } of parsed) {
     const depth = Math.floor(indent / 2);
     const pad = "  ".repeat(depth);
     const ordered = /\d/.test(marker);
     const bulletText = ordered ? `${marker} ` : "• ";
     const bullet = style(bulletText, theme.bullet);
-    const hang = pad + " ".repeat(displayWidth(bulletText));
-    const avail = width - displayWidth(pad) - displayWidth(bulletText);
-    const wrapped = renderInline(content, Math.max(avail, 8));
+    const prefixWidth = displayWidth(pad) + displayWidth(bulletText);
+    const showPrefix = prefixWidth < width;
+    const firstPrefix = showPrefix ? pad + bullet : "";
+    const hang = showPrefix ? pad + " ".repeat(displayWidth(bulletText)) : "";
+    const wrapped = renderInline(content, width - displayWidth(firstPrefix));
     wrapped.forEach((l, idx) => {
-      out.push(idx === 0 ? pad + bullet + l : hang + l);
+      out.push(idx === 0 ? firstPrefix + l : hang + l);
     });
+  }
+  return out;
+}
+
+function renderField(
+  label: string,
+  value: string,
+  width: number,
+  marker: string,
+): string[] {
+  const markerText = displayWidth(marker) < width ? marker : "";
+  const roomAfterMarker = width - displayWidth(markerText);
+  const maxLabel = Math.max(
+    0,
+    Math.min(Math.floor(width / 3), roomAfterMarker - 2),
+  );
+  const shownLabel = maxLabel > 0 && label ? truncate(label, maxLabel) : "";
+  const renderedLabel = shownLabel
+    ? style(renderInlineFlat(shownLabel), sgr.bold)
+    : "";
+  const prefix =
+    markerText +
+    (renderedLabel ? `${renderedLabel}${style(":", sgr.dim)} ` : "");
+  const prefixWidth = displayWidth(prefix);
+  const wrapped = renderInline(value, width - prefixWidth);
+  const hang = " ".repeat(prefixWidth);
+  return wrapped.map((line, i) => (i === 0 ? prefix + line : hang + line));
+}
+
+function renderTableFallback(
+  header: string[],
+  body: string[][],
+  width: number,
+): string[] {
+  const out: string[] = [];
+  const rowHeadings = header[0] === "" && header.slice(1).some(Boolean);
+  for (const [rowIndex, row] of body.entries()) {
+    if (rowIndex > 0) out.push("");
+    if (rowHeadings) {
+      out.push(
+        ...renderInline(row[0] ?? "", width).map((line) =>
+          style(line, theme.accent, sgr.bold),
+        ),
+      );
+      for (let i = 1; i < header.length; i++) {
+        out.push(...renderField(header[i], row[i] ?? "", width, "  "));
+      }
+    } else {
+      for (let i = 0; i < header.length; i++) {
+        out.push(
+          ...renderField(header[i], row[i] ?? "", width, i === 0 ? "• " : "  "),
+        );
+      }
+    }
   }
   return out;
 }
@@ -99,6 +168,8 @@ function renderTable(rows: string[], width: number): string[] {
   const widths = Array.from({ length: cols }, (_, i) =>
     Math.max(...rendered.map((r) => displayWidth(r[i]))),
   );
+  const boxWidth = widths.reduce((sum, cell) => sum + cell, 0) + 3 * cols + 1;
+  if (boxWidth > width) return renderTableFallback(header, body, width);
 
   const V = style("│", theme.tableBorder);
   const line = (cells: string[], bold: boolean) =>
@@ -117,7 +188,6 @@ function renderTable(rows: string[], width: number): string[] {
       theme.tableBorder,
     );
 
-  void width;
   return [
     border("┌", "┬", "┐"),
     line(rendered[0], true),
@@ -130,12 +200,12 @@ function renderTable(rows: string[], width: number): string[] {
 // markdown source -> styled terminal string (or raw passthrough).
 export function render(
   src: string,
-  opts: { color: boolean } = { color: true },
+  opts: { color: boolean; width?: number } = { color: true },
 ): string {
   if (!opts.color) return src.trimEnd() + "\n";
   setColorEnabled(true);
 
-  const width = termWidth();
+  const width = termWidth(opts.width);
   const lines = src.replace(/\r\n/g, "\n").split("\n");
   const out: string[] = [];
   let i = 0;
@@ -172,7 +242,7 @@ export function render(
 
     if (isHeading(line)) {
       spacer();
-      out.push(...renderHeading(line));
+      out.push(...renderHeading(line, width));
       i++;
       continue;
     }
