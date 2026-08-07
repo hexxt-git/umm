@@ -1,5 +1,12 @@
 # @hexxt/umm
 
+## 0.3.1
+
+### Patch Changes
+
+- 8fd1fcf: Recover gracefully from common config and history mistakes.
+- 8ef8f0e: Keep rendered answers readable and width-safe in narrow terminals.
+
 ## 0.3.0
 
 ### Minor Changes
