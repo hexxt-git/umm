@@ -5,6 +5,7 @@ import { renderInline, renderInlineFlat } from "./inline.js";
 import { displayWidth, stripAnsi, truncate } from "./width.js";
 
 const MAX_WIDTH = 90;
+const MIN_TABLE_CELL_WIDTH = 6;
 
 function termWidth(requested?: number): number {
   const cols = requested ?? process.stdout.columns ?? 80;
@@ -165,22 +166,50 @@ function renderTable(rows: string[], width: number): string[] {
     Array.from({ length: cols }, (_, i) => renderInlineFlat(r[i] ?? "")),
   );
 
-  const widths = Array.from({ length: cols }, (_, i) =>
+  const naturalWidths = Array.from({ length: cols }, (_, i) =>
     Math.max(...rendered.map((r) => displayWidth(r[i]))),
   );
-  const boxWidth = widths.reduce((sum, cell) => sum + cell, 0) + 3 * cols + 1;
-  if (boxWidth > width) return renderTableFallback(header, body, width);
+  const available = width - 3 * cols - 1;
+  let widths = naturalWidths;
+
+  if (naturalWidths.reduce((sum, cell) => sum + cell, 0) > available) {
+    widths = naturalWidths.map((cell) => Math.min(cell, MIN_TABLE_CELL_WIDTH));
+    let remaining = available - widths.reduce((sum, cell) => sum + cell, 0);
+    if (remaining < 0) return renderTableFallback(header, body, width);
+
+    while (remaining > 0) {
+      let grew = false;
+      for (let i = 0; i < cols && remaining > 0; i++) {
+        if (widths[i] < naturalWidths[i]) {
+          widths[i]++;
+          remaining--;
+          grew = true;
+        }
+      }
+      if (!grew) break;
+    }
+  }
 
   const V = style("│", theme.tableBorder);
-  const line = (cells: string[], bold: boolean) =>
-    V +
-    cells
-      .map((c, i) => {
-        const cell = bold ? style(c, sgr.bold) : c;
-        return " " + padTo(cell, widths[i]) + " ";
-      })
-      .join(V) +
-    V;
+  const lines = (cells: string[], bold: boolean) => {
+    const wrapped = Array.from({ length: cols }, (_, i) =>
+      renderInline(cells[i] ?? "", widths[i]),
+    );
+    const height = Math.max(...wrapped.map((cell) => cell.length));
+    return Array.from(
+      { length: height },
+      (_, row) =>
+        V +
+        wrapped
+          .map((cell, i) => {
+            const content = cell[row] ?? "";
+            const shown = bold ? style(content, sgr.bold) : content;
+            return " " + padTo(shown, widths[i]) + " ";
+          })
+          .join(V) +
+        V,
+    );
+  };
 
   const border = (l: string, m: string, r: string) =>
     style(
@@ -190,9 +219,9 @@ function renderTable(rows: string[], width: number): string[] {
 
   return [
     border("┌", "┬", "┐"),
-    line(rendered[0], true),
+    ...lines(header, true),
     border("├", "┼", "┤"),
-    ...rendered.slice(1).map((r) => line(r, false)),
+    ...body.flatMap((row) => lines(row, false)),
     border("└", "┴", "┘"),
   ];
 }
