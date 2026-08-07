@@ -103,3 +103,34 @@ test("wide tables fall back to responsive labeled rows", () => {
       .every((line) => displayWidth(line) <= 24),
   );
 });
+
+test("descriptive tables stay boxed when their cells can wrap", () => {
+  const output = stripAnsi(
+    render(
+      [
+        "| Option | Best for | Tradeoff |",
+        "| - | - | - |",
+        "| SQLite | Small local applications and prototypes | Limited concurrent writes |",
+        "| Postgres | Production services with multiple users | Requires a database server |",
+        "| Redis | Fast cache |",
+      ].join("\n"),
+      { color: true, width: 80 },
+    ),
+  );
+
+  assert.match(output, /┌/);
+  assert.doesNotMatch(output, /• Option:/);
+  assert.match(output, /Small local applications/);
+  assert.ok(
+    output
+      .trimEnd()
+      .split("\n")
+      .every((line) => /^[┌├└│].*[┐┤┘│]$/.test(line)),
+  );
+  assert.ok(
+    output
+      .trimEnd()
+      .split("\n")
+      .every((line) => displayWidth(line) <= 80),
+  );
+});
