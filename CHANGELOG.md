@@ -1,5 +1,11 @@
 # @hexxt/umm
 
+## 0.3.2
+
+### Patch Changes
+
+- 0b80d71: Keep tables boxed at normal terminal widths by wrapping long cell contents.
+
 ## 0.3.1
 
 ### Patch Changes
